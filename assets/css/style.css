@@ -29,6 +29,36 @@
     --text-muted: #64748b;
     --border-color: rgba(0, 0, 0, 0.05);
 }
+/* Universal Bars Styling */
+.top-navbar {
+    position: fixed; top: 0; left: 0; width: 100%; height: 60px;
+    background: var(--bg-secondary); display: flex; align-items: center;
+    justify-content: space-between; padding: 0 15px; z-index: 1000;
+    border-bottom: 1px solid var(--border-color);
+}
+
+.bottom-nav {
+    position: fixed; bottom: 0; left: 0; width: 100%; height: 70px;
+    background: var(--bg-secondary); display: flex; justify-content: space-around;
+    align-items: center; border-top: 1px solid var(--border-color);
+    padding-bottom: env(safe-area-inset-bottom); z-index: 1000;
+}
+
+.nav-item {
+    display: flex; flex-direction: column; align-items: center;
+    color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1;
+}
+
+.nav-item.active { color: var(--accent-color); }
+
+.container { padding: 80px 20px 100px; } /* Bars ke liye space */
+
+.profile-img-nav {
+    width: 32px; height: 32px; border-radius: 50%; border: 2px solid var(--accent-color);
+    object-fit: cover; background: var(--bg-primary);
+}
+
+
 
 /* --- Global Reset --- */
 * {
