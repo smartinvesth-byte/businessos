@@ -1,91 +1,62 @@
-  <!DOCTYPE html>
+ <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Settings - Brain OS</title>
     <link rel="stylesheet" href="assets/css/style.css">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        .profile-pic-box { position: relative; width: 110px; height: 110px; margin: 0 auto 20px; }
-        .profile-pic-box img { width: 100%; height: 100%; border-radius: 50%; object-fit: cover; border: 3px solid var(--accent-color); background: var(--bg-secondary); }
-        .cam-icon { position: absolute; bottom: 5px; right: 5px; background: var(--accent-color); color: white; padding: 6px; border-radius: 50%; border: 2px solid var(--bg-primary); cursor: pointer; }
-        .section-label { color: var(--accent-color); font-size: 0.8rem; font-weight: 700; margin: 20px 0 10px; text-transform: uppercase; }
-        .bottom-nav { position: fixed; bottom: 0; width: 100%; height: 70px; background: var(--bg-secondary); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); z-index: 100; }
-        .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1; }
-        .nav-item.active { color: var(--accent-color); }
+        /* Shared Bottom/Top Nav styles same as Dashboard */
+        .profile-pic-area { text-align: center; margin-bottom: 25px; position: relative; width: 100px; height: 100px; margin: 0 auto 30px; }
+        .profile-pic-area img { width: 100%; height: 100%; border-radius: 50%; border: 3px solid var(--accent-color); object-fit: cover; }
+        .upload-btn { position: absolute; bottom: 0; right: 0; background: var(--accent-color); color: white; padding: 5px; border-radius: 50%; border: 2px solid var(--bg-primary); cursor: pointer; }
     </style>
 </head>
 <body class="bg-dark">
 
-    <div class="container" style="padding-top: 30px; padding-bottom: 100px;">
-        <h2 style="margin-bottom: 25px; text-align: center;">Settings & Profile</h2>
+    <!-- Same Top Navbar -->
+    <header class="top-navbar" style="position: fixed; top: 0; width: 100%; height: 60px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; z-index: 1000; border-bottom: 1px solid var(--border-color);">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i data-lucide="chevron-left" onclick="history.back()"></i>
+            <span style="font-weight: 700; font-size: 1.1rem;">Settings & Profile</span>
+        </div>
+        <div id="theme-btn" style="cursor: pointer; padding: 5px;"><i data-lucide="sun" size="20"></i></div>
+    </header>
 
-        <!-- Avatar Section -->
-        <div class="profile-pic-box">
-            <img id="user-avatar" src="https://via.placeholder.com/110">
-            <label for="file-upload" class="cam-icon"><i data-lucide="camera" size="16"></i></label>
-            <input type="file" id="file-upload" hidden accept="image/*">
+    <main class="container" style="margin-top: 80px; padding-bottom: 100px;">
+        <!-- Avatar Upload -->
+        <div class="profile-pic-area">
+            <img id="p-avatar" src="https://via.placeholder.com/100">
+            <label for="img-input" class="upload-btn"><i data-lucide="camera" size="14"></i></label>
+            <input type="file" id="img-input" hidden accept="image/*">
         </div>
 
-        <!-- Personal Info -->
-        <div class="section-label">Personal Information</div>
         <div class="card">
-            <div class="form-group">
-                <label>Full Name</label>
-                <input type="text" id="p-name" placeholder="Name">
-            </div>
+            <div class="form-group"><label>Full Name</label><input type="text" id="p-name"></div>
+            <div class="form-group"><label>Phone (WhatsApp)</label><input type="tel" id="p-phone"></div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                <div class="form-group">
-                    <label>Gender</label>
-                    <select id="p-gender" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:12px; border-radius:8px;">
-                        <option value="Male">Male</option>
-                        <option value="Female">Female</option>
-                        <option value="Other">Other</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label>DOB</label>
-                    <input type="date" id="p-dob" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:10px; border-radius:8px;">
-                </div>
-            </div>
-            <div class="form-group">
-                <label>WhatsApp Number</label>
-                <input type="tel" id="p-phone">
+                <div class="form-group"><label>Gender</label><select id="p-gender" style="width:100%; padding:12px; background:var(--bg-secondary); color:white; border-radius:8px; border:1px solid var(--border-color);">
+                    <option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+                </select></div>
+                <div class="form-group"><label>DOB</label><input type="date" id="p-dob" style="width:100%; padding:10px; background:var(--bg-secondary); color:white; border-radius:8px; border:1px solid var(--border-color);"></div>
             </div>
         </div>
 
-        <!-- Business Info -->
-        <div class="section-label">Business Details</div>
-        <div class="card">
-            <div class="form-group">
-                <label>Business Name</label>
-                <input type="text" id="p-bizname">
-            </div>
-            <div class="form-group">
-                <label>Category</label>
-                <select id="p-category" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:12px; border-radius:8px;">
-                    <option value="Retail">Retail Shop</option>
-                    <option value="Pharmacy">Pharmacy</option>
-                    <option value="Restaurant">Restaurant</option>
-                    <option value="Service">Service Provider</option>
-                    <option value="Other">Other Business</option>
-                </select>
-            </div>
+        <div class="card" style="margin-top: 15px;">
+            <div class="form-group"><label>Business Name</label><input type="text" id="p-biz"></div>
+            <div class="form-group"><label>Category</label><select id="p-cat" style="width:100%; padding:12px; background:var(--bg-secondary); color:white; border-radius:8px; border:1px solid var(--border-color);">
+                <option value="Retail">Retail</option><option value="Pharmacy">Pharmacy</option><option value="Restaurant">Restaurant</option>
+            </select></div>
         </div>
 
-        <button class="btn btn-primary" id="save-btn" style="margin-top: 20px;">Save Profile Updates</button>
-        
-        <div style="margin-top: 30px; text-align: center;">
-            <button id="logout-btn" style="background:none; border:none; color:var(--danger); font-weight:600; display:flex; align-items:center; gap:8px; margin: 0 auto;">
-                <i data-lucide="log-out" size="18"></i> Logout Account
-            </button>
-        </div>
-    </div>
+        <button class="btn btn-primary" id="save-profile" style="margin-top: 20px;">Save Profile</button>
+        <button class="btn btn-secondary" id="logout-btn" style="margin-top: 20px; color: var(--danger); border-color: rgba(239, 68, 68, 0.2);">Logout Account</button>
+    </main>
 
-    <!-- Consistent Bottom Nav -->
-    <nav class="bottom-nav">
+    <!-- Same Bottom Nav -->
+    <nav class="bottom-nav" style="position: fixed; bottom: 0; width: 100%; height: 70px; background: var(--bg-secondary); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); z-index: 1000;">
         <a href="dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
         <a href="workspace.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
         <a href="analytics.html" class="nav-item"><i data-lucide="bar-chart-3"></i><span>Analytics</span></a>
@@ -98,65 +69,49 @@
         import { auth } from './core/auth.js';
         lucide.createIcons();
 
-        async function loadProfile() {
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+        // Theme logic
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
 
+        // Load and Save Profile
+        async function init() {
+            const { data: { user } } = await supabase.auth.getUser();
             const { data: profile } = await supabase.from('profiles').select('*').eq('id', user.id).single();
             const { data: biz } = await supabase.from('businesses').select('*').eq('owner_id', user.id).single();
 
             if (profile) {
                 document.getElementById('p-name').value = profile.full_name || '';
+                document.getElementById('p-phone').value = profile.phone || '';
                 document.getElementById('p-gender').value = profile.gender || 'Male';
                 document.getElementById('p-dob').value = profile.dob || '';
-                document.getElementById('p-phone').value = profile.phone || '';
-                if(profile.avatar_url) document.getElementById('user-avatar').src = profile.avatar_url;
+                if(profile.avatar_url) document.getElementById('p-avatar').src = profile.avatar_url;
             }
-            if (biz) {
-                document.getElementById('p-bizname').value = biz.business_name || '';
-                document.getElementById('p-category').value = biz.business_category || 'Retail';
-            }
+            if(biz) document.getElementById('p-biz').value = biz.business_name || '';
         }
 
-        // Save Logic
-        document.getElementById('save-btn').onclick = async () => {
+        document.getElementById('save-profile').onclick = async () => {
             const { data: { user } } = await supabase.auth.getUser();
-            const updates = {
-                id: user.id,
-                full_name: document.getElementById('p-name').value,
-                gender: document.getElementById('p-gender').value,
-                dob: document.getElementById('p-dob').value,
-                phone: document.getElementById('p-phone').value,
-                updated_at: new Date()
-            };
-
-            const bizUpdates = {
-                business_name: document.getElementById('p-bizname').value,
-                business_category: document.getElementById('p-category').value
-            };
-
-            await supabase.from('profiles').upsert(updates);
-            await supabase.from('businesses').update(bizUpdates).eq('owner_id', user.id);
-            alert("Profile Updated Successfully!");
+            await supabase.from('profiles').upsert({
+                id: user.id, full_name: document.getElementById('p-name').value,
+                phone: document.getElementById('p-phone').value, gender: document.getElementById('p-gender').value,
+                dob: document.getElementById('p-dob').value
+            });
+            await supabase.from('businesses').update({ business_name: document.getElementById('p-biz').value }).eq('owner_id', user.id);
+            alert("Updated!");
         };
 
-        // Image Upload
-        document.getElementById('file-upload').onchange = async (e) => {
+        document.getElementById('img-input').onchange = async (e) => {
             const file = e.target.files[0];
             const { data: { user } } = await supabase.auth.getUser();
             const path = `avatars/${user.id}-${Date.now()}`;
-            
-            const { data, error } = await supabase.storage.from('avatars').upload(path, file);
-            if(data) {
-                const { data: url } = supabase.storage.from('avatars').getPublicUrl(path);
-                await supabase.from('profiles').update({ avatar_url: url.publicUrl }).eq('id', user.id);
-                document.getElementById('user-avatar').src = url.publicUrl;
-                alert("Photo Updated!");
-            }
+            await supabase.storage.from('avatars').upload(path, file);
+            const { data } = supabase.storage.from('avatars').getPublicUrl(path);
+            await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
+            document.getElementById('p-avatar').src = data.publicUrl;
         };
 
         document.getElementById('logout-btn').onclick = () => auth.logout();
-        loadProfile();
+        init();
     </script>
 </body>
-</html>
+</html> 
+            
