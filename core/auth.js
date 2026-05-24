@@ -1,21 +1,30 @@
 import { supabase } from '../database/supabase.js';
 
 export const auth = {
-    // 1. Signup Function
-    async signUp(email, password, fullName) {
-        const { data, error } = await supabase.auth.signUp({
-            email,
-            password,
-            options: {
-                data: {
-                    full_name: fullName,
-                    role: 'admin' // Default role for creator
-                }
-            }
-        });
-        if (error) throw error;
-        return data;
-    },
+    // core/auth.js mein signUp function ko replace karein
+async signUp(email, password, fullName, businessName) {
+    const { data, error } = await supabase.auth.signUp({
+        email,
+        password,
+    });
+
+    if (error) throw error;
+
+    if (data.user) {
+        // Create profile entry
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .insert([{ 
+                id: data.user.id, 
+                full_name: fullName, 
+                business_name: businessName,
+                updated_at: new Date()
+            }]);
+        
+        if (profileError) throw profileError;
+    }
+    return data;
+}
 
     // 2. Login Function
     async login(email, password) {
