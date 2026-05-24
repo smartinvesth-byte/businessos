@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Profile - Business Brain OS</title>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        .profile-header {
+            text-align: center;
+            padding: 30px 0;
+            background: linear-gradient(to bottom, var(--bg-secondary), var(--bg-primary));
+        }
+        .avatar-container {
+            position: relative;
+            width: 100px;
+            height: 100px;
+            margin: 0 auto 15px;
+        }
+        .avatar-img {
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 3px solid var(--accent-color);
+        }
+        .edit-avatar-btn {
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            background: var(--accent-color);
+            color: white;
+            border-radius: 50%;
+            padding: 5px;
+            cursor: pointer;
+            border: 2px solid var(--bg-primary);
+        }
+        #avatar-input { display: none; }
+    </style>
+</head>
+<body class="bg-dark">
+
+    <div class="profile-header">
+        <div class="avatar-container">
+            <img src="https://via.placeholder.com/100" id="profile-img" class="avatar-img">
+            <label for="avatar-input" class="edit-avatar-btn">
+                <i data-lucide="camera" size="16"></i>
+            </label>
+            <input type="file" id="avatar-input" accept="image/*">
+        </div>
+        <h2 id="display-name">Loading...</h2>
+        <p id="display-business" style="font-size: 0.9rem; color: var(--accent-color);">Business Name</p>
+    </div>
+
+    <div class="container">
+        <div class="card">
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="edit-name">
+            </div>
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="edit-business">
+            </div>
+            <div class="form-group">
+                <label>Email Address (Read Only)</label>
+                <input type="email" id="edit-email" readonly style="opacity: 0.6;">
+            </div>
+            
+            <button class="btn btn-primary" id="update-profile-btn">Update Profile</button>
+        </div>
+
+        <button class="btn btn-secondary mt-20" id="logout-btn" style="color: var(--danger);">
+            <i data-lucide="log-out" size="18" style="margin-right: 8px;"></i> Logout from Device
+        </button>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
+        <a href="workspace.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
+        <a href="profile.html" class="nav-item active"><i data-lucide="user"></i><span>Profile</span></a>
+    </nav>
+
+    <script type="module">
+        import { supabase } from './database/supabase.js';
+        import { UI } from './core/ui.js';
+        import { auth } from './core/auth.js';
+
+        lucide.createIcons();
+
+        const avatarInput = document.getElementById('avatar-input');
+        const profileImg = document.getElementById('profile-img');
+
+        // 1. Load Profile Data
+        async function loadProfile() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: profile } = await supabase
+                .from('profiles')
+                .select('*')
+                .eq('id', user.id)
+                .single();
+
+            if (profile) {
+                document.getElementById('display-name').innerText = profile.full_name;
+                document.getElementById('display-business').innerText = profile.business_name;
+                document.getElementById('edit-name').value = profile.full_name;
+                document.getElementById('edit-business').value = profile.business_name;
+                document.getElementById('edit-email').value = user.email;
+                if (profile.avatar_url) profileImg.src = profile.avatar_url;
+            }
+        }
+
+        // 2. Update Text Data
+        document.getElementById('update-profile-btn').onclick = async () => {
+            UI.setLoading('update-profile-btn', true);
+            const { data: { user } } = await supabase.auth.getUser();
+            
+            const updates = {
+                id: user.id,
+                full_name: document.getElementById('edit-name').value,
+                business_name: document.getElementById('edit-business').value,
+                updated_at: new Date()
+            };
+
+            const { error } = await supabase.from('profiles').upsert(updates);
+            UI.setLoading('update-profile-btn', false);
+            
+            if (error) UI.showToast("Update Failed", "error");
+            else {
+                UI.showToast("Profile Updated!", "success");
+                loadProfile();
+            }
+        };
+
+        // 3. Handle Image Upload
+        avatarInput.onchange = async (e) => {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            UI.showToast("Uploading Image...");
+            const { data: { user } } = await supabase.auth.getUser();
+            const filePath = `avatars/${user.id}_${Math.random()}`;
+
+            // Upload to Supabase Storage
+            const { data, error } = await supabase.storage
+                .from('avatars')
+                .upload(filePath, file);
+
+            if (error) {
+                UI.showToast("Upload Error", "error");
+                return;
+            }
+
+            // Get Public URL
+            const { data: { publicUrl } } = supabase.storage.from('avatars').getPublicUrl(filePath);
+
+            // Update Profile Table
+            await supabase.from('profiles').update({ avatar_url: publicUrl }).eq('id', user.id);
+            
+            profileImg.src = publicUrl;
+            UI.showToast("Image Updated!", "success");
+        };
+
+        // 4. Logout Logic
+        document.getElementById('logout-btn').onclick = () => auth.logout();
+
+        loadProfile();
+    </script>
+</body>
+</html>
