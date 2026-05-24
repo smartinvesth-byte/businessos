@@ -5,48 +5,45 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Business Brain OS</title>
     
-    <!-- PWA Meta Tags -->
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="theme-color" content="#0f172a">
-
-    <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Core CSS -->
-    <link rel="stylesheet" href="assets/css/style.css">
-
-    <!-- Supabase CDN (Standard Script) -->
+    <!-- 1. Sabse pehle Supabase CDN load karein -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
 </head>
 <body class="bg-dark">
 
-    <!-- Splash Screen / Loader -->
-    <div id="app-loader" class="loader-container">
+    <!-- Loader -->
+    <div id="app-loader" class="loader-container" style="position: fixed; width: 100%; height: 100%; background: #0f172a; display: flex; flex-direction: column; justify-content: center; align-items: center; z-index: 9999;">
         <div class="spinner"></div>
-        <h1 class="brand-name">Business Brain OS</h1>
+        <h1 class="brand-name" style="color: #3b82f6; margin-top: 20px;">Business Brain OS</h1>
+        <p id="debug-msg" style="color: gray; font-size: 12px; margin-top: 10px;">Connecting to Core...</p>
     </div>
 
-    <!-- Main App Mount Point -->
-    <div id="app" style="display: none;">
-        <!-- Yahan login ya dashboard content load hoga -->
-    </div>
+    <!-- Main Mount Point -->
+    <div id="app" style="display: none;"></div>
 
-    <!-- SIRF EK SCRIPT TAG RAKHEIN -->
+    <!-- Logic -->
     <script type="module">
-        // Sabse pehle initialize karne ke liye paths check karein
         import { initAuth } from './core/auth.js';
-        
+
+        // SAFETY TIMER: Agar 5 sec mein load nahi hua, toh screen dikha do
+        setTimeout(() => {
+            const loader = document.getElementById('app-loader');
+            if (loader && loader.style.display !== 'none') {
+                console.log("Forcing loader to hide...");
+                loader.style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('debug-msg').innerText = "Load Timeout - Check Console";
+            }
+        }, 5000);
+
         window.addEventListener('load', async () => {
-            console.log("Application loaded, checking auth...");
+            console.log("Window Loaded. Initializing...");
             try {
                 await initAuth();
             } catch (err) {
-                console.error("Critical Auth Error:", err);
-                // Agar sab fail ho jaye, tab bhi loader hata do debugging ke liye
-                document.getElementById('app-loader').style.display = 'none';
-                document.getElementById('app').style.display = 'block';
-                document.getElementById('app').innerHTML = '<h1>Setup Error. Check Console.</h1>';
+                console.error("Critical Failure:", err);
             }
         });
     </script>
