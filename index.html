@@ -28,15 +28,26 @@
     </div>
 
     <!-- Main App Mount Point -->
-    <div id="app" style="display: none;"></div>
+    <div id="app" style="display: none;">
+        <!-- Yahan login ya dashboard content load hoga -->
+    </div>
 
-    <!-- Core Scripts (Sirf itna rakhein) -->
+    <!-- SIRF EK SCRIPT TAG RAKHEIN -->
     <script type="module">
+        // Sabse pehle initialize karne ke liye paths check karein
         import { initAuth } from './core/auth.js';
         
-        window.addEventListener('DOMContentLoaded', async () => {
-            console.log("App Starting...");
-            await initAuth();
+        window.addEventListener('load', async () => {
+            console.log("Application loaded, checking auth...");
+            try {
+                await initAuth();
+            } catch (err) {
+                console.error("Critical Auth Error:", err);
+                // Agar sab fail ho jaye, tab bhi loader hata do debugging ke liye
+                document.getElementById('app-loader').style.display = 'none';
+                document.getElementById('app').style.display = 'block';
+                document.getElementById('app').innerHTML = '<h1>Setup Error. Check Console.</h1>';
+            }
         });
     </script>
 </body>
