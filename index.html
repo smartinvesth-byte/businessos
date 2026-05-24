@@ -28,23 +28,16 @@
     </div>
 
     <!-- Main App Mount Point -->
-    <div id="app" style="display: none;">
-        <!-- Content will be injected or redirected via router.js -->
-    </div>
+    <div id="app" style="display: none;"></div>
 
-    <!-- Core Scripts -->
-    <script type="module" src="database/supabase.js"></script>
-    <script type="module" src="core/auth.js"></script>
-    <script type="module" src="core/router.js"></script>
-    
-    // index.html ke last mein jo script hai usey isse replace karke dekhein
-<!-- index.html ke niche ka script -->
-<script type="module">
-    import { initAuth } from './core/auth.js'; // Check path is exactly same as folder name
-    
-    window.addEventListener('DOMContentLoaded', async () => {
-        await initAuth();
-    });
-</script>
+    <!-- Core Scripts (Sirf itna rakhein) -->
+    <script type="module">
+        import { initAuth } from './core/auth.js';
+        
+        window.addEventListener('DOMContentLoaded', async () => {
+            console.log("App Starting...");
+            await initAuth();
+        });
+    </script>
 </body>
 </html>
