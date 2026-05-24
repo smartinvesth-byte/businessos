@@ -1,4 +1,4 @@
- <!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
@@ -7,58 +7,154 @@
     <link rel="stylesheet" href="assets/css/style.css">
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        /* UI FIX: Layout Consistency */
+        .top-navbar { 
+            position: fixed; top: 0; left: 0; width: 100%; height: 60px; 
+            background: var(--bg-secondary); display: flex; align-items: center; 
+            justify-content: space-between; padding: 0 15px; z-index: 1000; 
+            border-bottom: 1px solid var(--border-color); 
+        }
+        
+        .bottom-nav { 
+            position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; 
+            background: var(--bg-secondary); display: flex; justify-content: space-around; 
+            align-items: center; border-top: 1px solid var(--border-color); 
+            padding-bottom: env(safe-area-inset-bottom); z-index: 1000; 
+        }
+
+        .nav-item { 
+            display: flex; flex-direction: column; align-items: center; 
+            color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1; 
+        }
+        .nav-item.active { color: var(--accent-color); }
+
+        /* UI FIX: Profile Image Alignment (Solving Screenshot Issue) */
+        .profile-main-container { 
+            padding: 85px 20px 100px; /* Extra top padding so it doesn't hide behind header */
+        }
+
+        .avatar-wrapper { 
+            position: relative; 
+            width: 120px; 
+            height: 120px; 
+            margin: 0 auto 30px; /* Center with space below */
+            display: block;
+        }
+
+        .avatar-wrapper img { 
+            width: 100%; 
+            height: 100%; 
+            border-radius: 50%; 
+            border: 4px solid var(--accent-color); 
+            object-fit: cover; 
+            background: var(--bg-secondary);
+        }
+
+        .upload-cam-btn { 
+            position: absolute; 
+            bottom: 5px; 
+            right: 5px; 
+            background: var(--accent-color); 
+            color: white; 
+            width: 38px;
+            height: 38px;
+            border-radius: 50%; 
+            border: 3px solid var(--bg-primary); 
+            cursor: pointer; 
+            display: flex; 
+            align-items: center; 
+            justify-content: center;
+            z-index: 10;
+        }
+
+        .section-header { 
+            color: var(--accent-color); 
+            font-size: 0.8rem; 
+            font-weight: 700; 
+            margin: 20px 0 10px; 
+            text-transform: uppercase; 
+        }
+    </style>
 </head>
 <body class="bg-dark">
 
+    <!-- Universal Top Navbar -->
     <header class="top-navbar">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <i data-lucide="chevron-left" onclick="location.href='dashboard.html'"></i>
-            <span style="font-weight: 700;">Settings & Profile</span>
+            <i data-lucide="chevron-left" onclick="location.href='dashboard.html'" style="cursor: pointer;"></i>
+            <span style="font-weight: 700; font-size: 1.1rem;">Settings & Profile</span>
         </div>
-        <i data-lucide="sun" id="theme-btn" size="20"></i>
+        <div id="theme-btn" style="cursor: pointer; padding: 5px;"><i data-lucide="sun" size="20"></i></div>
     </header>
 
-    <main class="container">
-        <!-- Profile Pic Upload -->
-        <div style="text-align: center; margin-bottom: 30px;">
-            <div style="position: relative; width: 110px; height: 110px; margin: 0 auto;">
-                <img id="main-avatar" src="https://via.placeholder.com/110" style="width:100%; height:100%; border-radius:50%; border:3px solid var(--accent-color); object-fit:cover;">
-                <label for="img-input" style="position:absolute; bottom:0; right:0; background:var(--accent-color); padding:8px; border-radius:50%; cursor:pointer;">
-                    <i data-lucide="camera" size="16" style="color:white;"></i>
-                </label>
-                <input type="file" id="img-input" hidden accept="image/*">
-            </div>
+    <main class="profile-main-container">
+        
+        <!-- Profile Picture Box -->
+        <div class="avatar-wrapper">
+            <img id="profile-img-preview" src="https://via.placeholder.com/120">
+            <label for="avatar-file-input" class="upload-cam-btn">
+                <i data-lucide="camera" size="18"></i>
+            </label>
+            <input type="file" id="avatar-file-input" hidden accept="image/*">
         </div>
 
-        <!-- Forms (All Fields from Signup) -->
+        <!-- Personal Section -->
+        <div class="section-header">Personal Information</div>
         <div class="card">
-            <div class="form-group"><label>Full Name</label><input type="text" id="edit-name"></div>
-            <div class="form-group"><label>WhatsApp Number</label><input type="tel" id="edit-phone"></div>
+            <div class="form-group">
+                <label>Full Name</label>
+                <input type="text" id="edit-fullname">
+            </div>
+            <div class="form-group">
+                <label>WhatsApp Number</label>
+                <input type="tel" id="edit-phone">
+            </div>
             <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
                 <div class="form-group">
                     <label>Gender</label>
-                    <select id="edit-gender" style="width:100%; background:var(--bg-secondary); color:white; padding:12px; border:1px solid var(--border-color); border-radius:8px;">
-                        <option value="Male">Male</option><option value="Female">Female</option>
+                    <select id="edit-gender" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:12px; border-radius:8px;">
+                        <option value="Male">Male</option>
+                        <option value="Female">Female</option>
+                        <option value="Other">Other</option>
                     </select>
                 </div>
-                <div class="form-group"><label>DOB</label><input type="date" id="edit-dob" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); border-radius:8px; padding:10px;"></div>
+                <div class="form-group">
+                    <label>DOB</label>
+                    <input type="date" id="edit-dob" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:10px; border-radius:8px;">
+                </div>
             </div>
         </div>
 
-        <div class="card" style="margin-top:15px;">
-            <div class="form-group"><label>Business Name</label><input type="text" id="edit-biz"></div>
+        <!-- Business Section -->
+        <div class="section-header">Business Details</div>
+        <div class="card">
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="edit-bizname">
+            </div>
             <div class="form-group">
                 <label>Category</label>
-                <select id="edit-cat" style="width:100%; background:var(--bg-secondary); color:white; padding:12px; border:1px solid var(--border-color); border-radius:8px;">
-                    <option value="Retail">Retail Shop</option><option value="Pharmacy">Pharmacy</option><option value="Restaurant">Restaurant</option>
+                <select id="edit-category" style="width:100%; background:var(--bg-secondary); color:white; border:1px solid var(--border-color); padding:12px; border-radius:8px;">
+                    <option value="Retail Shop">Retail Shop</option>
+                    <option value="Pharmacy">Pharmacy</option>
+                    <option value="Restaurant">Restaurant</option>
+                    <option value="Service">Service</option>
+                    <option value="Other">Other</option>
                 </select>
             </div>
         </div>
 
-        <button class="btn btn-primary" id="update-btn" style="margin-top:20px;">Save Profile Changes</button>
-        <button class="btn btn-secondary" id="logout-btn" style="margin-top:15px; color:var(--danger);">Logout Account</button>
+        <button class="btn btn-primary" id="save-profile-btn" style="margin-top: 25px;">Save Profile Changes</button>
+        
+        <div style="margin-top: 30px; text-align: center;">
+            <button id="logout-trigger" style="background:none; border:none; color:var(--danger); font-weight:600; display:flex; align-items:center; gap:8px; margin: 0 auto;">
+                <i data-lucide="log-out" size="18"></i> Logout Account
+            </button>
+        </div>
     </main>
 
+    <!-- Universal Bottom Nav -->
     <nav class="bottom-nav">
         <a href="dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
         <a href="workspace.html" class="nav-item"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
@@ -72,47 +168,67 @@
         import { auth } from './core/auth.js';
         lucide.createIcons();
 
+        // Theme Persistence
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+
         async function loadProfile() {
             const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
             const { data: prof } = await supabase.from('profiles').select('*').eq('id', user.id).single();
             const { data: biz } = await supabase.from('businesses').select('*').eq('owner_id', user.id).single();
 
-            if(prof) {
-                document.getElementById('edit-name').value = prof.full_name || '';
+            if (prof) {
+                document.getElementById('edit-fullname').value = prof.full_name || '';
                 document.getElementById('edit-phone').value = prof.phone || '';
                 document.getElementById('edit-gender').value = prof.gender || 'Male';
                 document.getElementById('edit-dob').value = prof.dob || '';
-                if(prof.avatar_url) document.getElementById('main-avatar').src = prof.avatar_url;
+                if(prof.avatar_url) document.getElementById('profile-img-preview').src = prof.avatar_url;
             }
-            if(biz) {
-                document.getElementById('edit-biz').value = biz.business_name || '';
-                document.getElementById('edit-cat').value = biz.business_category || 'Retail';
+            if (biz) {
+                document.getElementById('edit-bizname').value = biz.business_name || '';
+                document.getElementById('edit-category').value = biz.business_category || 'Retail Shop';
             }
         }
 
-        document.getElementById('update-btn').onclick = async () => {
+        // Save Profile Logic
+        document.getElementById('save-profile-btn').onclick = async () => {
             const { data: { user } } = await supabase.auth.getUser();
+            
             await supabase.from('profiles').upsert({
-                id: user.id, full_name: document.getElementById('edit-name').value,
-                phone: document.getElementById('edit-phone').value, gender: document.getElementById('edit-gender').value,
-                dob: document.getElementById('edit-dob').value
+                id: user.id,
+                full_name: document.getElementById('edit-fullname').value,
+                phone: document.getElementById('edit-phone').value,
+                gender: document.getElementById('edit-gender').value,
+                dob: document.getElementById('edit-dob').value,
+                updated_at: new Date()
             });
-            await supabase.from('businesses').update({ business_name: document.getElementById('edit-biz').value, business_category: document.getElementById('edit-cat').value }).eq('owner_id', user.id);
-            alert("Profile Updated!");
-            location.reload();
+
+            await supabase.from('businesses').update({
+                business_name: document.getElementById('edit-bizname').value,
+                business_category: document.getElementById('edit-category').value
+            }).eq('owner_id', user.id);
+
+            alert("Profile Saved!");
         };
 
-        document.getElementById('img-input').onchange = async (e) => {
+        // Image Upload Logic
+        document.getElementById('avatar-file-input').onchange = async (e) => {
             const file = e.target.files[0];
             const { data: { user } } = await supabase.auth.getUser();
             const path = `avatars/${user.id}-${Date.now()}`;
-            await supabase.storage.from('avatars').upload(path, file);
-            const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-            await supabase.from('profiles').update({ avatar_url: data.publicUrl }).eq('id', user.id);
-            location.reload();
+            
+            const { data, error } = await supabase.storage.from('avatars').upload(path, file);
+            if(data) {
+                const { data: url } = supabase.storage.from('avatars').getPublicUrl(path);
+                await supabase.from('profiles').update({ avatar_url: url.publicUrl }).eq('id', user.id);
+                document.getElementById('profile-img-preview').src = url.publicUrl;
+                alert("Photo Updated!");
+            }
         };
 
-        document.getElementById('logout-btn').onclick = () => auth.logout();
+        document.getElementById('logout-trigger').onclick = () => auth.logout();
+        
         loadProfile();
     </script>
 </body>
