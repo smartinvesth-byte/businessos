@@ -1,9 +1,11 @@
-import { supabase } from '../database/supabase.js';
+import { getSupabase } from '../database/supabase.js';
 
 export const auth = {
-    // Master Signup: Sabhi foundation tables ko ek saath fill karta hai
+    // 1. MASTER SIGNUP: Creating User, Profile, Business, Member, and Subscription
     async signUp(email, password, userData) {
-        // 1. Create Auth User
+        const supabase = getSupabase();
+        
+        // Auth account create karein
         const { data: authData, error: authError } = await supabase.auth.signUp({
             email,
             password
@@ -14,7 +16,7 @@ export const auth = {
 
         if (user) {
             try {
-                // 2. Create Profile
+                // Profile entry
                 const { error: profileError } = await supabase.from('profiles').insert([{
                     id: user.id,
                     full_name: userData.fullName,
@@ -24,7 +26,7 @@ export const auth = {
                 }]);
                 if (profileError) throw profileError;
 
-                // 3. Create First Business
+                // Business entry
                 const { data: bizData, error: bizError } = await supabase.from('businesses').insert([{
                     owner_id: user.id,
                     business_name: userData.businessName,
@@ -32,7 +34,7 @@ export const auth = {
                 }]).select().single();
                 if (bizError) throw bizError;
 
-                // 4. Make User an ADMIN of this business
+                // Make Admin
                 const { error: memberError } = await supabase.from('business_members').insert([{
                     business_id: bizData.id,
                     user_id: user.id,
@@ -40,9 +42,9 @@ export const auth = {
                 }]);
                 if (memberError) throw memberError;
 
-                // 5. Start 7-Day Free Trial
+                // Start 7-Day Trial
                 const expiry = new Date();
-                expiry.setDate(expiry.getDate() + 7); // Add 7 days
+                expiry.setDate(expiry.getDate() + 7);
                 
                 const { error: subError } = await supabase.from('subscriptions').insert([{
                     business_id: bizData.id,
@@ -56,46 +58,61 @@ export const auth = {
 
             } catch (err) {
                 console.error("Signup Process Error:", err);
-                throw new Error("Account created but setup failed. Please contact support.");
+                throw new Error("Setup failed: " + err.message);
             }
         }
     },
 
-    // Simple Login
+    // 2. LOGIN
     async login(email, password) {
+        const supabase = getSupabase();
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         return data;
     },
 
-    // Logout
+    // 3. LOGOUT
     async logout() {
+        const supabase = getSupabase();
         await supabase.auth.signOut();
         window.location.href = 'login.html';
     },
 
-    // Session Check
+    // 4. CHECK SESSION & REDIRECT
     async checkSession() {
+        const supabase = getSupabase();
         const { data: { session } } = await supabase.auth.getSession();
+        
+        const path = window.location.pathname;
+        const isAuthPage = path.includes('login.html') || path.includes('signup.html');
+
+        if (session && isAuthPage) {
+            window.location.href = 'dashboard.html';
+        } else if (!session && !isAuthPage && !path.endsWith('index.html') && path !== '/') {
+            window.location.href = 'login.html';
+        }
+        
         return session;
     }
-// core/auth.js ke last mein initAuth ko replace karein
+};
 
+// 5. INITIALIZE AUTH UI
 export const initAuth = async () => {
     try {
-        console.log("Checking session...");
+        console.log("Initializing Auth Engine...");
         await auth.checkSession();
     } catch (error) {
-        console.error("Auth Error:", error);
+        console.error("Auth Init Error:", error);
     } finally {
-        // Yeh block hamesha chalega, chahe error aaye ya nahi
+        // Sab kuch hone ke baad loader hatao
         const loader = document.getElementById('app-loader');
+        const app = document.getElementById('app');
+        
         if (loader) {
             loader.style.opacity = '0';
             setTimeout(() => {
                 loader.style.display = 'none';
-                const app = document.getElementById('app');
-                if(app) app.style.display = 'block';
+                if (app) app.style.display = 'block';
             }, 500);
         }
     }
