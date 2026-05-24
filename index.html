@@ -37,13 +37,24 @@
     <script type="module" src="core/auth.js"></script>
     <script type="module" src="core/router.js"></script>
     
-    <script type="module">
-        import { initAuth } from './core/auth.js';
-        
-        window.addEventListener('DOMContentLoaded', async () => {
-            // Check session on load
+    // index.html ke last mein jo script hai usey isse replace karke dekhein
+<script type="module">
+    import { initAuth } from './core/auth.js';
+    
+    window.addEventListener('DOMContentLoaded', async () => {
+        console.log("App loading started...");
+        try {
             await initAuth();
-        });
-    </script>
+            console.log("Auth initialized successfully");
+        } catch (error) {
+            console.error("Auth initialization failed:", error);
+            // Agar error aaye tab bhi loader hata do taaki screen dikhe
+            const loader = document.getElementById('app-loader');
+            if(loader) loader.style.display = 'none';
+            const app = document.getElementById('app');
+            if(app) app.style.display = 'block';
+        }
+    });
+</script>
 </body>
 </html>
