@@ -2,42 +2,76 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Business Brain OS</title>
-    <!-- 1. Library load hone dein -->
+    <!-- 1. Supabase Library -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="assets/css/style.css">
+    <style>
+        .manual-btn {
+            display: inline-block;
+            margin-top: 20px;
+            padding: 12px 24px;
+            background: #3b82f6;
+            color: white;
+            text-decoration: none;
+            border-radius: 8px;
+            font-weight: 600;
+            font-family: sans-serif;
+        }
+    </style>
 </head>
 <body class="bg-dark">
 
-    <div id="app-loader" style="position:fixed; width:100%; height:100%; background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; color:white;">
+    <!-- Loader -->
+    <div id="app-loader" style="position:fixed; width:100%; height:100%; background:#0f172a; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999; color:white; font-family:sans-serif;">
         <div class="spinner"></div>
         <h1 style="color:#3b82f6; margin-top:20px;">Business Brain OS</h1>
-        <p id="debug-log" style="font-size:12px; color:gray; margin-top:10px;">Starting Engine...</p>
+        <p id="debug-log" style="font-size:12px; color:gray; margin-top:10px;">Initializing Core...</p>
     </div>
 
-    <div id="app" style="display: none;"></div>
+    <!-- Main Content Area -->
+    <div id="app" style="display: none; text-align: center; margin-top: 100px; color: white; font-family: sans-serif; padding: 20px;">
+        <h1>Welcome to Brain OS</h1>
+        <p id="app-msg">Redirecting you to the right place...</p>
+        <br>
+        <a href="login.html" class="manual-btn">Go to Login Manually</a>
+    </div>
 
     <script type="module">
         import { initAuth } from './core/auth.js';
 
         window.addEventListener('load', async () => {
+            const log = document.getElementById('debug-log');
+            const app = document.getElementById('app');
+            const loader = document.getElementById('app-loader');
+
             try {
-                // Wait for library to be available in window
-                let checkCount = 0;
-                const checkLib = setInterval(async () => {
-                    checkCount++;
-                    if (window.supabase || checkCount > 50) {
-                        clearInterval(checkLib);
-                        document.getElementById('debug-log').innerText = "Auth Check...";
+                // Wait for Supabase to be ready
+                let checks = 0;
+                const checkInterval = setInterval(async () => {
+                    checks++;
+                    if (window.supabase) {
+                        clearInterval(checkInterval);
+                        log.innerText = "Authenticating...";
                         await initAuth();
-                        document.getElementById('app-loader').style.display = 'none';
-                        document.getElementById('app').style.display = 'block';
+                        // If still on this page after 2 seconds, show the app div
+                        setTimeout(() => {
+                            loader.style.display = 'none';
+                            app.style.display = 'block';
+                        }, 2000);
+                    } else if (checks > 50) {
+                        clearInterval(checkInterval);
+                        log.innerText = "Connection Timeout";
+                        loader.style.display = 'none';
+                        app.style.display = 'block';
+                        document.getElementById('app-msg').innerText = "Database connection failed. Please check your internet.";
                     }
                 }, 100);
             } catch (err) {
-                document.getElementById('debug-log').style.color = 'red';
-                document.getElementById('debug-log').innerText = "Error: " + err.message;
+                console.error(err);
+                loader.style.display = 'none';
+                app.style.display = 'block';
             }
         });
     </script>
