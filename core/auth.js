@@ -79,4 +79,24 @@ export const auth = {
         const { data: { session } } = await supabase.auth.getSession();
         return session;
     }
+// core/auth.js ke last mein initAuth ko replace karein
+
+export const initAuth = async () => {
+    try {
+        console.log("Checking session...");
+        await auth.checkSession();
+    } catch (error) {
+        console.error("Auth Error:", error);
+    } finally {
+        // Yeh block hamesha chalega, chahe error aaye ya nahi
+        const loader = document.getElementById('app-loader');
+        if (loader) {
+            loader.style.opacity = '0';
+            setTimeout(() => {
+                loader.style.display = 'none';
+                const app = document.getElementById('app');
+                if(app) app.style.display = 'block';
+            }, 500);
+        }
+    }
 };
