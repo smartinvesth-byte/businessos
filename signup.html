@@ -3,86 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Create Account - Business Brain OS</title>
+    <title>Signup - Business Brain OS</title>
+    
+    <!-- Core Libraries -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .signup-container { padding: 40px 20px; max-width: 500px; margin: 0 auto; }
+        .card { background: #1e293b; padding: 25px; border-radius: 20px; border: 1px solid rgba(255,255,255,0.1); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.8rem; color: #94a3b8; margin-bottom: 6px; }
+        .form-group input, .form-group select { 
+            width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; 
+            color: white; border-radius: 10px; outline: none; font-family: inherit;
+        }
+        .btn-primary { 
+            width: 100%; padding: 14px; background: #3b82f6; color: white; border: none; 
+            border-radius: 12px; font-weight: 700; margin-top: 10px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3);
+        }
+    </style>
 </head>
 <body class="bg-dark">
 
-    <div class="container" style="margin-top: 40px;">
+    <div class="signup-container">
         <div class="text-center" style="margin-bottom: 30px;">
-            <h1 style="font-size: 1.8rem;">Get Started</h1>
-            <p>Build your modular business OS</p>
+            <h1 style="color: white; font-size: 1.8rem;">Create Account</h1>
+            <p style="color: #94a3b8;">Start your 7-day free trial</p>
         </div>
 
         <div class="card">
-            <form id="signup-form">
+            <form id="master-signup-form">
                 <div class="form-group">
                     <label>Full Name</label>
-                    <input type="text" id="fullname" placeholder="John Doe" required>
+                    <input type="text" id="s-name" placeholder="John Doe" required>
+                </div>
+
+                <div class="form-group">
+                    <label>WhatsApp Number</label>
+                    <input type="tel" id="s-phone" placeholder="+91..." required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select id="s-gender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="s-dob" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Business Name</label>
+                    <input type="text" id="s-bizname" placeholder="E.g. Star Retail" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Business Category</label>
+                    <select id="s-category">
+                        <option value="Retail Shop">Retail Shop</option>
+                        <option value="Pharmacy">Pharmacy / Medical</option>
+                        <option value="Restaurant">Restaurant / Cafe</option>
+                        <option value="Electronics">Electronics & Mobile</option>
+                        <option value="Garments">Garments / Fashion</option>
+                        <option value="Service">Service Provider</option>
+                        <option value="Wholesale">Wholesale / Agency</option>
+                        <option value="Manufacturing">Manufacturing</option>
+                        <option value="Other">Other Business</option>
+                    </select>
                 </div>
 
                 <div class="form-group">
                     <label>Email Address</label>
-                    <input type="email" id="email" placeholder="name@business.com" required>
+                    <input type="email" id="s-email" placeholder="name@example.com" required>
                 </div>
-
-                <!-- Signup Form ke andar ye fields add karein -->
-<div class="form-group">
-    <label>WhatsApp Number</label>
-    <input type="tel" id="phone" placeholder="+91 9876543210" required>
-</div>
-
-<div class="form-group">
-    <label>Business Category</label>
-    <select id="category" class="input-style" style="width: 100%; background: var(--bg-secondary); color: white; padding: 12px; border: 1px solid var(--border-color); border-radius: 8px;">
-        <option value="retail">Retail Shop</option>
-        <option value="service">Service Provider</option>
-        <option value="manufacturing">Manufacturing</option>
-        <option value="other">Other</option>
-    </select>
-</div>
 
                 <div class="form-group">
                     <label>Create Password</label>
-                    <input type="password" id="password" placeholder="Min 6 characters" required>
+                    <input type="password" id="s-password" placeholder="Min. 6 chars" required>
                 </div>
 
-                <button type="submit" id="signup-btn" class="btn btn-primary">
-                    <span id="btn-text">Create Admin Account</span>
-                    <div id="btn-loader" class="spinner" style="width: 20px; height: 20px; display: none;"></div>
-                </button>
+                <button type="submit" class="btn-primary" id="signup-btn">Create Admin Account</button>
             </form>
         </div>
 
-        <div class="text-center mt-20">
-            <p>Already have an account? <a href="login.html" style="color: var(--accent-color); font-weight: 600; text-decoration: none;">Login</a></p>
-        </div>
+        <p style="text-align: center; margin-top: 20px; color: #94a3b8;">
+            Already have an account? <a href="login.html" style="color: #3b82f6; text-decoration: none; font-weight: 600;">Login</a>
+        </p>
     </div>
 
-    <script type="module">
-        import { auth } from './core/auth.js';
+    <script>
+        // --- CONFIGURATION ---
+        const SB_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
 
-        const signupForm = document.getElementById('signup-form');
-        const signupBtn = document.getElementById('signup-btn');
+        let sb;
 
-        signupForm.addEventListener('submit', async (e) => {
+        window.onload = () => {
+            // Initialize Supabase Client
+            sb = window.supabase.createClient(SB_URL, SB_KEY);
+        };
+
+        document.getElementById('master-signup-form').onsubmit = async (e) => {
             e.preventDefault();
-            
-            const name = document.getElementById('fullname').value;
-            const email = document.getElementById('email').value;
-            const password = document.getElementById('password').value;
+            const btn = document.getElementById('signup-btn');
+            btn.innerText = "Processing...";
+            btn.disabled = true;
 
-            signupBtn.disabled = true;
+            const email = document.getElementById('s-email').value;
+            const password = document.getElementById('s-password').value;
+            
+            const userData = {
+                fullName: document.getElementById('s-name').value,
+                phone: document.getElementById('s-phone').value,
+                gender: document.getElementById('s-gender').value,
+                dob: document.getElementById('s-dob').value,
+                bizName: document.getElementById('s-bizname').value,
+                category: document.getElementById('s-category').value
+            };
 
             try {
-                await auth.signUp(email, password, name);
-                alert('Signup successful! Please check your email for verification (if enabled) or Login now.');
-                window.location.href = 'login.html';
-            } catch (error) {
-                alert('Signup Error: ' + error.message);
-                signupBtn.disabled = false;
+                // 1. Create Auth User
+                const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
+                if (authError) throw authError;
+                
+                const user = authData.user;
+                if(user) {
+                    // 2. Create Profile
+                    await sb.from('profiles').insert([{
+                        id: user.id, full_name: userData.fullName, gender: userData.gender,
+                        dob: userData.dob, phone: userData.phone
+                    }]);
+
+                    // 3. Create Business
+                    const { data: biz } = await sb.from('businesses').insert([{
+                        owner_id: user.id, business_name: userData.bizName, business_category: userData.category
+                    }]).select().single();
+
+                    // 4. Link Admin Role
+                    await sb.from('business_members').insert([{
+                        business_id: biz.id, user_id: user.id, role: 'admin'
+                    }]);
+
+                    // 5. Start Trial
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + 7);
+                    await sb.from('subscriptions').insert([{
+                        business_id: biz.id, plan_type: 'free', status: 'active', expiry_date: expiry.toISOString()
+                    }]);
+
+                    alert("Welcome! Account created successfully.");
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                alert("Signup Error: " + err.message);
+                btn.innerText = "Create Admin Account";
+                btn.disabled = false;
             }
-        });
+        };
     </script>
 </body>
 </html>
