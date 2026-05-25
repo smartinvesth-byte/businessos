@@ -8,29 +8,36 @@
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
+        /* Universal Bars */
         .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: var(--bg-secondary); display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid var(--border-color); }
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--bg-secondary); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1; }
         .nav-item.active { color: var(--accent-color); }
-        .container { padding: 80px 20px 100px; }
         
-        /* Action Bar */
-        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-box { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; border-radius: 12px; }
-        .search-box input { border: none; background: transparent; color: white; padding: 12px 5px; width: 100%; outline: none; }
-        .add-btn { background: var(--accent-color); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; }
+        .container { padding: 80px 15px 100px; }
 
-        /* Customer Card */
-        .customer-card { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 15px; }
-        .balance-strip { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 12px; display: flex; justify-content: space-between; margin-top: 12px; }
-        .bal-label { font-size: 0.65rem; color: var(--text-muted); text-transform: uppercase; display: block; }
-        .bal-val { font-size: 0.9rem; font-weight: 700; }
+        /* Action Bar */
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; position: sticky; top: 75px; background: var(--bg-primary); padding-bottom: 10px; z-index: 900; }
+        .search-container { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; }
+        .search-container input { border: none; background: transparent; color: white; width: 100%; padding: 12px 5px; outline: none; font-size: 0.9rem; }
+        .add-btn { background: var(--accent-color); color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; box-shadow: 0 4px 12px var(--accent-glow); }
+
+        /* Customer List Card */
+        .customer-item { background: var(--bg-card); border: 1px solid var(--border-color); border-radius: 16px; padding: 16px; margin-bottom: 15px; }
+        .cust-row { display: flex; justify-content: space-between; align-items: flex-start; }
+        .cust-name { font-weight: 700; font-size: 1rem; color: var(--text-main); }
+        .cust-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
         
-        .card-actions { display: flex; justify-content: flex-end; gap: 20px; margin-top: 15px; padding-top: 12px; border-top: 1px solid var(--border-color); }
-        .act-btn { font-size: 0.75rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px; }
+        .amount-box { background: rgba(255,255,255,0.03); border-radius: 12px; padding: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; margin-top: 12px; text-align: center; }
+        .amt-label { font-size: 0.6rem; color: var(--text-muted); text-transform: uppercase; }
+        .amt-val { font-size: 0.85rem; font-weight: 700; }
+
+        .list-actions { display: flex; justify-content: flex-end; gap: 15px; margin-top: 12px; padding-top: 12px; border-top: 1px solid var(--border-color); }
+        .act-link { display: flex; align-items: center; gap: 4px; font-size: 0.7rem; font-weight: 600; cursor: pointer; color: var(--text-muted); }
+        .act-link:hover { color: var(--accent-color); }
 
         /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: flex-end; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal.active { display: flex; }
         .modal-content { background: var(--bg-card); width: 100%; border-radius: 24px 24px 0 0; padding: 25px; max-height: 90vh; overflow-y: auto; }
     </style>
@@ -39,36 +46,38 @@
 
     <header class="top-navbar">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'" style="cursor:pointer"></i>
-            <span style="font-weight: 700; font-size: 1.1rem;">Customer Manager</span>
+            <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'"></i>
+            <span style="font-weight: 700;">Customer Manager</span>
         </div>
-        <i data-lucide="refresh-cw" size="20" id="btn-refresh" style="cursor:pointer"></i>
+        <i data-lucide="refresh-cw" id="sync-list" size="20" style="cursor:pointer"></i>
     </header>
 
     <main class="container">
+        <!-- Search & Add -->
         <div class="action-bar">
-            <div class="search-box">
+            <div class="search-container">
                 <i data-lucide="search" size="18" style="color:var(--text-muted)"></i>
-                <input type="text" id="cust-search" placeholder="Search customers...">
+                <input type="text" id="cust-search" placeholder="Search by name...">
             </div>
-            <button class="add-btn" id="btn-add"><i data-lucide="plus"></i></button>
+            <button class="add-btn" id="btn-add-customer"><i data-lucide="plus"></i></button>
         </div>
 
-        <div id="list-container">
-            <p style="text-align: center; color: var(--text-muted); margin-top: 40px;">Syncing with database...</p>
+        <!-- List Section -->
+        <div id="customer-list-container">
+            <p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Initializing Database...</p>
         </div>
     </main>
 
-    <!-- Modal Form -->
-    <div class="modal" id="cust-modal">
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="customer-modal">
         <div class="modal-content">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
                 <h3 id="modal-title">New Customer</h3>
                 <i data-lucide="x" onclick="closeModal()" style="cursor:pointer"></i>
             </div>
             
-            <input type="hidden" id="edit-id">
-            <div class="form-group"><label>Full Name *</label><input type="text" id="f-name"></div>
+            <input type="hidden" id="entry-id">
+            <div class="form-group"><label>Customer Name *</label><input type="text" id="f-name"></div>
             <div class="form-group"><label>Mobile Number</label><input type="tel" id="f-phone"></div>
             <div class="form-group"><label>Address</label><input type="text" id="f-addr"></div>
             
@@ -81,7 +90,7 @@
                 <input type="number" id="f-rem" value="0" readonly style="background:rgba(34,197,94,0.1); color:var(--success); font-weight:800;">
             </div>
 
-            <button class="btn btn-primary" id="btn-save" style="width: 100%; margin-top: 10px;">Save Customer</button>
+            <button class="btn btn-primary" id="btn-save" style="width: 100%; margin-top: 10px; height: 50px;">Confirm & Save</button>
         </div>
     </div>
 
@@ -98,86 +107,80 @@
         import { supabase } from '../../database/supabase.js';
         lucide.createIcons();
 
-        let bizId = null;
+        let activeBizId = null;
 
-        // Auto Calculation
-        const updateBal = () => {
+        // Auto Balance Math
+        const syncMath = () => {
             const t = parseFloat(document.getElementById('f-total').value) || 0;
             const p = parseFloat(document.getElementById('f-paid').value) || 0;
             document.getElementById('f-rem').value = (t - p).toFixed(2);
         };
-        document.getElementById('f-total').oninput = updateBal;
-        document.getElementById('f-paid').oninput = updateBal;
+        document.getElementById('f-total').oninput = syncMath;
+        document.getElementById('f-paid').oninput = syncMath;
 
-        // 1. Get Business Context First
-        async function loadApp() {
-            try {
-                const { data: { user } } = await supabase.auth.getUser();
-                if (!user) return window.location.href = '../../login.html';
+        // 1. Initial Setup
+        async function start() {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return window.location.href = '../../login.html';
 
-                const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single();
-                if (biz) {
-                    bizId = biz.id;
-                    loadList();
-                } else {
-                    document.getElementById('list-container').innerHTML = "Business Profile not found.";
-                }
-            } catch (e) {
-                document.getElementById('list-container').innerHTML = "Connection Error. Try refreshing.";
+            const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single();
+            if (biz) {
+                activeBizId = biz.id;
+                renderCustomers();
             }
         }
 
-        // 2. Load List with Business ID check
-        async function loadList(search = '') {
-            if (!bizId) return;
-            const container = document.getElementById('list-container');
+        // 2. Render List
+        async function renderCustomers(search = '') {
+            if (!activeBizId) return;
+            const listDiv = document.getElementById('customer-list-container');
             
-            let query = supabase.from('customers').select('*').eq('business_id', bizId);
+            let query = supabase.from('customers').select('*').eq('business_id', activeBizId);
             if (search) query = query.ilike('name', `%${search}%`);
 
             const { data, error } = await query.order('created_at', { ascending: false });
 
             if (error) {
-                container.innerHTML = `<p style="color:red; text-align:center">Error: ${error.message}</p>`;
+                listDiv.innerHTML = `<p style="color:red; text-align:center">Failed to load data.</p>`;
                 return;
             }
 
             if (!data || data.length === 0) {
-                container.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:40px;">No customers found.</p>`;
+                listDiv.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No customers found.</p>`;
                 return;
             }
 
-            container.innerHTML = data.map(c => `
-                <div class="customer-card">
-                    <div style="display:flex; justify-content:space-between">
+            listDiv.innerHTML = data.map(c => `
+                <div class="customer-item">
+                    <div class="cust-row">
                         <div>
-                            <div style="font-weight:700">${c.name}</div>
-                            <div style="font-size:0.75rem; color:gray">${c.phone || 'No Mobile'}</div>
+                            <div class="cust-name">${c.name}</div>
+                            <div class="cust-meta">${c.phone || 'No Mobile'}</div>
                         </div>
-                        <div style="text-align:right; font-size:0.7rem; color:gray">${c.address || ''}</div>
+                        <div style="text-align:right" class="cust-meta">${c.address || ''}</div>
                     </div>
-                    <div class="balance-strip">
-                        <div class="bal-item"><span class="bal-label">Total</span><span class="bal-val">₹${c.total_amount}</span></div>
-                        <div class="bal-item"><span class="bal-label">Paid</span><span class="bal-val" style="color:var(--success)">₹${c.advance_paid}</span></div>
-                        <div class="bal-item"><span class="bal-label">Balance</span><span class="bal-val" style="color:var(--warning)">₹${c.remaining_balance}</span></div>
+                    <div class="amount-box">
+                        <div><span class="amt-label">Total</span><div class="amt-val">₹${c.total_amount}</div></div>
+                        <div><span class="amt-label">Paid</span><div class="amt-val" style="color:var(--success)">₹${c.advance_paid}</div></div>
+                        <div><span class="amt-label">Balance</span><div class="amt-val" style="color:var(--warning)">₹${c.remaining_balance}</div></div>
                     </div>
-                    <div class="card-actions">
-                        <span class="act-btn" onclick="editCust('${c.id}')"><i data-lucide="edit-2" size="14" style="color:var(--accent-color)"></i> EDIT</span>
-                        <span class="act-btn" onclick="delCust('${c.id}')" style="color:var(--danger)"><i data-lucide="trash-2" size="14"></i> REMOVE</span>
+                    <div class="list-actions">
+                        <span class="act-link" onclick="handleEdit('${c.id}')"><i data-lucide="edit-3" size="14"></i> UPDATE</span>
+                        <span class="act-link" style="color:var(--danger)" onclick="handleDelete('${c.id}')"><i data-lucide="trash-2" size="14"></i> REMOVE</span>
                     </div>
                 </div>
             `).join('');
             lucide.createIcons();
         }
 
-        // 3. Save / Update Logic
+        // 3. Action Handlers
         document.getElementById('btn-save').onclick = async () => {
-            const id = document.getElementById('edit-id').value;
+            const id = document.getElementById('entry-id').value;
             const btn = document.getElementById('btn-save');
             btn.disabled = true;
 
             const payload = {
-                business_id: bizId,
+                business_id: activeBizId,
                 name: document.getElementById('f-name').value,
                 phone: document.getElementById('f-phone').value,
                 address: document.getElementById('f-addr').value,
@@ -186,48 +189,53 @@
                 remaining_balance: parseFloat(document.getElementById('f-rem').value) || 0
             };
 
-            if (!payload.name) return alert("Enter customer name");
+            if (!payload.name) {
+                alert("Name is required!");
+                btn.disabled = false;
+                return;
+            }
 
             const { error } = id ? await supabase.from('customers').update(payload).eq('id', id) : await supabase.from('customers').insert([payload]);
 
             if (error) alert(error.message);
-            else { closeModal(); loadList(); }
+            else { closeModal(); renderCustomers(); }
             btn.disabled = false;
         };
 
-        // Window Functions
-        window.editCust = async (id) => {
+        window.handleEdit = async (id) => {
             const { data } = await supabase.from('customers').select('*').eq('id', id).single();
-            document.getElementById('edit-id').value = data.id;
-            document.getElementById('f-name').value = data.name;
-            document.getElementById('f-phone').value = data.phone;
-            document.getElementById('f-addr').value = data.address;
-            document.getElementById('f-total').value = data.total_amount;
-            document.getElementById('f-paid').value = data.advance_paid;
-            document.getElementById('f-rem').value = data.remaining_balance;
-            document.getElementById('modal-title').innerText = "Update Customer";
-            document.getElementById('cust-modal').classList.add('active');
-        };
-
-        window.delCust = async (id) => {
-            if (confirm("Delete this customer?")) {
-                await supabase.from('customers').delete().eq('id', id);
-                loadList();
+            if(data) {
+                document.getElementById('entry-id').value = data.id;
+                document.getElementById('f-name').value = data.name;
+                document.getElementById('f-phone').value = data.phone;
+                document.getElementById('f-addr').value = data.address;
+                document.getElementById('f-total').value = data.total_amount;
+                document.getElementById('f-paid').value = data.advance_paid;
+                document.getElementById('f-rem').value = data.remaining_balance;
+                document.getElementById('modal-title').innerText = "Update Customer";
+                document.getElementById('customer-modal').classList.add('active');
             }
         };
 
-        document.getElementById('btn-add').onclick = () => {
-            document.getElementById('edit-id').value = '';
-            document.querySelectorAll('.modal-content input').forEach(i => i.value = (i.type === 'number' ? 0 : ''));
-            document.getElementById('modal-title').innerText = "New Customer";
-            document.getElementById('cust-modal').classList.add('active');
+        window.handleDelete = async (id) => {
+            if (confirm("Delete this customer record?")) {
+                await supabase.from('customers').delete().eq('id', id);
+                renderCustomers();
+            }
         };
 
-        window.closeModal = () => document.getElementById('cust-modal').classList.remove('active');
-        document.getElementById('cust-search').oninput = (e) => loadList(e.target.value);
-        document.getElementById('btn-refresh').onclick = () => location.reload();
+        document.getElementById('btn-add-customer').onclick = () => {
+            document.getElementById('entry-id').value = '';
+            document.querySelectorAll('.modal-content input').forEach(i => i.value = (i.type === 'number' ? 0 : ''));
+            document.getElementById('modal-title').innerText = "New Customer";
+            document.getElementById('customer-modal').classList.add('active');
+        };
 
-        loadApp();
+        window.closeModal = () => document.getElementById('customer-modal').classList.remove('active');
+        document.getElementById('cust-search').oninput = (e) => renderCustomers(e.target.value);
+        document.getElementById('sync-list').onclick = () => location.reload();
+
+        start();
         if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
     </script>
 </body>
