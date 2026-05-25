@@ -12,26 +12,16 @@
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--bg-secondary); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1; }
         .nav-item.active { color: var(--accent-color); }
-
         .module-container { padding: 80px 20px 100px; }
-        
-        /* Search & Add */
         .action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
         .search-input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 10px; outline: none; }
         .add-btn { background: var(--accent-color); color: white; border: none; padding: 0 15px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-
-        /* Customer Card */
-        .cust-card { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
-        .cust-info h4 { margin: 0; font-size: 0.95rem; }
-        .cust-info p { margin: 2px 0 0; font-size: 0.75rem; color: var(--text-muted); }
-        .cust-stats { text-align: right; }
-        .cust-stats .spent { font-weight: 700; color: var(--success); font-size: 0.9rem; }
-        .cust-stats .orders { font-size: 0.7rem; color: var(--text-muted); }
-
-        /* Modal */
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: center; justify-content: center; }
+        .cust-card { margin-bottom: 12px; position: relative; overflow: hidden; }
+        .cust-type-tag { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; background: rgba(59,130,246,0.1); color: var(--accent-color); font-weight: 700; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: flex-end; justify-content: center; }
         .modal.active { display: flex; }
-        .modal-content { background: var(--bg-card); width: 90%; max-width: 400px; padding: 25px; border-radius: 20px; }
+        .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; padding: 25px; border-radius: 25px 25px 0 0; animation: slideUp 0.3s ease-out; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
 <body class="bg-dark">
@@ -39,37 +29,51 @@
     <header class="top-navbar">
         <div style="display: flex; align-items: center; gap: 10px;">
             <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'" style="cursor: pointer;"></i>
-            <span style="font-weight: 700; font-size: 1.1rem;">Customers</span>
+            <span style="font-weight: 700; font-size: 1.1rem;">Customer Manager</span>
         </div>
-        <div style="display: flex; gap: 15px;">
-            <i data-lucide="refresh-cw" size="20" id="sync-btn" style="cursor: pointer;"></i>
-        </div>
+        <i data-lucide="refresh-cw" size="20" id="sync-btn" style="cursor: pointer;"></i>
     </header>
 
     <main class="module-container">
-        <!-- Search & Add Customer -->
         <div class="action-bar">
-            <input type="text" id="cust-search" class="search-input" placeholder="Search by name or phone...">
+            <input type="text" id="cust-search" class="search-input" placeholder="Name, Email or Phone...">
             <button class="add-btn" id="open-modal"><i data-lucide="plus"></i></button>
         </div>
-
-        <!-- Customer List -->
         <div id="customer-list">
-            <p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Loading customers...</p>
+            <p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Fetching records...</p>
         </div>
     </main>
 
-    <!-- Add Customer Modal -->
+    <!-- Detailed Add Customer Modal -->
     <div class="modal" id="cust-modal">
         <div class="modal-content">
-            <h3 style="margin-bottom: 20px;">Add New Customer</h3>
-            <div class="form-group"><label>Customer Name</label><input type="text" id="new-name" placeholder="Full Name"></div>
-            <div class="form-group"><label>Phone Number</label><input type="tel" id="new-phone" placeholder="91XXXXXXXX"></div>
-            <div class="form-group"><label>Address</label><input type="text" id="new-addr" placeholder="City, Area"></div>
-            <div style="display: flex; gap: 10px; margin-top: 20px;">
-                <button class="btn btn-secondary" onclick="closeModal()" style="flex: 1;">Cancel</button>
-                <button class="btn btn-primary" id="save-cust" style="flex: 2;">Save Customer</button>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+                <h3 style="margin:0;">New Customer</h3>
+                <i data-lucide="x" onclick="closeModal()" style="cursor:pointer;"></i>
             </div>
+            
+            <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
+                <div class="form-group"><label>Full Name *</label><input type="text" id="new-name" placeholder="John Doe"></div>
+                <div class="form-group"><label>WhatsApp / Phone</label><input type="tel" id="new-phone" placeholder="91XXXXXXXX"></div>
+                <div class="form-group"><label>Email Address</label><input type="email" id="new-email" placeholder="john@example.com"></div>
+                
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <div class="form-group">
+                        <label>Customer Type</label>
+                        <select id="new-type" style="width:100%; background:var(--bg-secondary); color:white; padding:12px; border:1px solid var(--border-color); border-radius:10px;">
+                            <option value="Regular">Regular</option>
+                            <option value="VIP">VIP</option>
+                            <option value="Wholesale">Wholesale</option>
+                        </select>
+                    </div>
+                    <div class="form-group"><label>GSTIN (Optional)</label><input type="text" id="new-gst" placeholder="GST Number"></div>
+                </div>
+                
+                <div class="form-group"><label>Full Address</label><input type="text" id="new-addr" placeholder="House, Street, City"></div>
+                <div class="form-group"><label>Opening Balance (₹)</label><input type="number" id="new-bal" value="0"></div>
+            </div>
+
+            <button class="btn btn-primary" id="save-cust" style="width: 100%; margin-top: 20px;">Save Customer Profile</button>
         </div>
     </div>
 
@@ -87,72 +91,86 @@
 
         let businessId = null;
 
-        // 1. Get Business ID
-        async function getBiz() {
+        async function getContext() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single();
             businessId = biz.id;
             loadCustomers();
         }
 
-        // 2. Load Customers
         async function loadCustomers(search = '') {
             let query = supabase.from('customers').select('*').eq('business_id', businessId);
-            
-            if(search) query = query.ilike('name', `%${search}%`);
+            if(search) query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
 
-            const { data: customers, error } = await query.order('name');
+            const { data: customers, error } = await query.order('created_at', { ascending: false });
             
             const list = document.getElementById('customer-list');
-            if(customers.length === 0) {
-                list.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin-top: 50px;">No customers found.</p>`;
+            if(!customers || customers.length === 0) {
+                list.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin-top: 50px;">No customers registered yet.</p>`;
                 return;
             }
 
             list.innerHTML = customers.map(c => `
                 <div class="card cust-card">
-                    <div class="cust-info">
-                        <h4>${c.name}</h4>
-                        <p><i data-lucide="phone" size="10"></i> ${c.phone || 'No phone'}</p>
+                    <span class="cust-type-tag">${c.customer_type}</span>
+                    <div style="display:flex; align-items:center; gap:15px;">
+                        <div style="width:45px; height:45px; background:var(--accent-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">
+                            ${c.name.charAt(0)}
+                        </div>
+                        <div class="cust-info">
+                            <h4 style="margin:0;">${c.name}</h4>
+                            <p style="margin:2px 0 0; color:var(--text-muted); font-size:0.75rem;">${c.phone || 'No phone'} | ${c.address || 'No address'}</p>
+                        </div>
                     </div>
-                    <div class="cust-stats">
-                        <div class="spent">₹${c.total_spent}</div>
-                        <div class="orders">${c.total_orders} orders</div>
+                    <div style="margin-top:15px; padding-top:10px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
+                        <span style="font-size:0.7rem; color:var(--text-muted);">Balance: <b style="color:${c.current_balance < 0 ? 'var(--danger)' : 'var(--success)'}">₹${c.current_balance}</b></span>
+                        <span style="font-size:0.7rem; color:var(--text-muted);">${c.total_orders} Orders</span>
                     </div>
                 </div>
             `).join('');
             lucide.createIcons();
         }
 
-        // 3. Save Customer
         document.getElementById('save-cust').onclick = async () => {
-            const name = document.getElementById('new-name').value;
-            const phone = document.getElementById('new-phone').value;
-            const address = document.getElementById('new-addr').value;
+            const btn = document.getElementById('save-cust');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
 
-            if(!name) return alert("Name is required");
-
-            const { error } = await supabase.from('customers').insert([{
+            const payload = {
                 business_id: businessId,
-                name, phone, address
-            }]);
+                name: document.getElementById('new-name').value,
+                phone: document.getElementById('new-phone').value,
+                email: document.getElementById('new-email').value,
+                customer_type: document.getElementById('new-type').value,
+                gst_number: document.getElementById('new-gst').value,
+                address: document.getElementById('new-addr').value,
+                current_balance: parseFloat(document.getElementById('new-bal').value) || 0
+            };
 
-            if(error) alert(error.message);
-            else {
+            const { error } = await supabase.from('customers').insert([payload]);
+
+            if(error) {
+                alert("Database Error: " + error.message);
+                btn.innerText = "Save Customer Profile";
+                btn.disabled = false;
+            } else {
+                alert("Customer Saved Successfully!");
                 closeModal();
                 loadCustomers();
+                btn.innerText = "Save Customer Profile";
+                btn.disabled = false;
+                // Clear inputs
+                document.querySelectorAll('.modal-content input').forEach(i => i.value = '');
             }
         };
 
-        // UI Helpers
         const modal = document.getElementById('cust-modal');
         document.getElementById('open-modal').onclick = () => modal.classList.add('active');
         window.closeModal = () => modal.classList.remove('active');
-
         document.getElementById('cust-search').oninput = (e) => loadCustomers(e.target.value);
         document.getElementById('sync-btn').onclick = () => loadCustomers();
 
-        getBiz();
+        getContext();
         if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
     </script>
 </body>
