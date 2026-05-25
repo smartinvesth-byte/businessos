@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Staff Manager - Business Brain OS</title>
+    
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <style>
+        /* UI Consistency */
+        .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; width: 100%; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 0.7rem; text-decoration: none; flex: 1; gap: 4px; }
+        .nav-item.active { color: #3b82f6; }
+        .container { padding: 80px 15px 100px; min-height: 100vh; background: #0f172a; }
+
+        /* Action Bar */
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box { flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; }
+        .search-box input { border: none; background: transparent; color: white; width: 100%; padding: 12px 5px; outline: none; }
+        .add-btn { background: #3b82f6; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+        /* Staff Card */
+        .staff-card { background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; padding: 15px; margin-bottom: 12px; }
+        .staff-header { display: flex; align-items: center; gap: 12px; }
+        .staff-img { width: 45px; height: 45px; border-radius: 50%; background: #3b82f6; display: flex; align-items: center; justify-content: center; font-weight: 700; color: white; }
+        .staff-info h4 { margin: 0; font-size: 0.95rem; }
+        .staff-info p { margin: 2px 0 0; font-size: 0.75rem; color: #94a3b8; }
+        
+        .status-badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; font-weight: 700; text-transform: uppercase; }
+        .status-active { background: rgba(34, 197, 94, 0.1); color: #22c55e; }
+
+        .card-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .footer-act { font-size: 0.7rem; font-weight: 600; color: #94a3b8; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+
+        /* Modal */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: flex-end; }
+        .modal.active { display: flex; }
+        .modal-sheet { background: #1e293b; width: 100%; border-radius: 24px 24px 0 0; padding: 25px; max-height: 85vh; overflow-y: auto; color: white; }
+        .form-group { margin-bottom: 12px; }
+        .form-group label { display: block; font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; }
+        .form-group input, .form-group select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; outline: none; }
+    </style>
+</head>
+<body class="bg-dark">
+
+    <header class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'" style="cursor:pointer"></i>
+            <span style="font-weight: 700;">Smart Staff Manager</span>
+        </div>
+        <i data-lucide="refresh-cw" size="20" onclick="location.reload()" style="cursor:pointer"></i>
+    </header>
+
+    <main class="container">
+        <div class="action-bar">
+            <div class="search-box">
+                <i data-lucide="search" size="18" style="color:#94a3b8"></i>
+                <input type="text" id="staff-search" placeholder="Search by name or ID...">
+            </div>
+            <button class="add-btn" id="open-add-btn"><i data-lucide="plus" size="24"></i></button>
+        </div>
+
+        <div id="staff-list">
+            <p style="text-align: center; color: gray; margin-top: 50px;">Connecting to HR Database...</p>
+        </div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div class="modal" id="staff-modal">
+        <div class="modal-sheet">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <h3 id="modal-title">New Staff Registration</h3>
+                <i data-lucide="x" onclick="closeModal()" style="cursor:pointer"></i>
+            </div>
+            
+            <input type="hidden" id="edit-id">
+            
+            <div class="form-group"><label>Full Name *</label><input type="text" id="s-name"></div>
+            <div class="form-group"><label>Phone / WhatsApp</label><input type="tel" id="s-phone"></div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group">
+                    <label>Employee Type</label>
+                    <select id="s-type">
+                        <option value="Full Time">Full Time</option>
+                        <option value="Part Time">Part Time</option>
+                        <option value="Contract">Contract</option>
+                    </select>
+                </div>
+                <div class="form-group"><label>Joining Date</label><input type="date" id="s-join"></div>
+            </div>
+
+            <div class="form-group"><label>Designation</label><input type="text" id="s-desig" placeholder="e.g. Sales Manager"></div>
+            <div class="form-group"><label>Address</label><input type="text" id="s-addr"></div>
+
+            <button class="add-btn" id="save-staff-btn" style="width: 100%; margin-top: 15px; height: 50px; font-weight: 700; border-radius: 12px;">Confirm Registration</button>
+        </div>
+    </div>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="../../dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
+        <a href="../../workspace.html" class="nav-item active"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
+        <a href="../../analytics.html" class="nav-item"><i data-lucide="bar-chart-3"></i><span>Analytics</span></a>
+        <a href="../../alerts.html" class="nav-item"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a href="../../profile.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+    </nav>
+
+    <script>
+        // CONFIG
+        const S_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
+
+        let sb, bizId = null;
+
+        window.onload = async () => {
+            lucide.createIcons();
+            try {
+                sb = window.supabase.createClient(S_URL, S_KEY);
+                const { data: { user } } = await sb.auth.getUser();
+                if(!user) return window.location.href = '../../login.html';
+
+                const { data: biz } = await sb.from('businesses').select('id').eq('owner_id', user.id).maybeSingle();
+                bizId = biz?.id;
+                loadStaff();
+            } catch (e) { document.getElementById('staff-list').innerText = "Connection Error."; }
+        };
+
+        async function loadStaff(search = '') {
+            const list = document.getElementById('staff-list');
+            let query = sb.from('staff').select('*').eq('business_id', bizId);
+            if(search) query = query.ilike('full_name', `%${search}%`);
+
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if(!data || data.length === 0) {
+                list.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No staff members found.</p>`;
+                return;
+            }
+
+            list.innerHTML = data.map(s => `
+                <div class="staff-card">
+                    <div class="staff-header">
+                        <div class="staff-img">${s.full_name.charAt(0)}</div>
+                        <div class="staff-info">
+                            <h4>${s.full_name}</h4>
+                            <p>${s.designation || 'Staff'} • ${s.employee_type}</p>
+                        </div>
+                        <div style="margin-left: auto;">
+                            <span class="status-badge status-active">${s.status}</span>
+                        </div>
+                    </div>
+                    <div class="card-footer">
+                        <span class="footer-act"><i data-lucide="phone" size="12"></i> ${s.phone || 'N/A'}</span>
+                        <div style="display:flex; gap:15px;">
+                            <span class="footer-act" onclick="editStaff('${s.id}')"><i data-lucide="edit-3" size="14"></i> EDIT</span>
+                            <span class="footer-act" style="color:#ef4444" onclick="deleteStaff('${s.id}')"><i data-lucide="trash-2" size="14"></i> REMOVE</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+            lucide.createIcons();
+        }
+
+        document.getElementById('save-staff-btn').onclick = async () => {
+            const id = document.getElementById('edit-id').value;
+            const btn = document.getElementById('save-staff-btn');
+            btn.disabled = true;
+
+            const payload = {
+                business_id: bizId,
+                full_name: document.getElementById('s-name').value,
+                phone: document.getElementById('s-phone').value,
+                employee_type: document.getElementById('s-type').value,
+                joining_date: document.getElementById('s-join').value || new Date().toISOString().split('T')[0],
+                designation: document.getElementById('s-desig').value,
+                address: document.getElementById('s-addr').value
+            };
+
+            if(!payload.full_name) { alert("Name is required"); btn.disabled = false; return; }
+
+            const { error } = id ? await sb.from('staff').update(payload).eq('id', id) : await sb.from('staff').insert([payload]);
+            
+            if(!error) { closeModal(); loadStaff(); } else { alert(error.message); }
+            btn.disabled = false;
+        };
+
+        window.editStaff = async (id) => {
+            const { data } = await sb.from('staff').select('*').eq('id', id).single();
+            if(data) {
+                document.getElementById('edit-id').value = data.id;
+                document.getElementById('s-name').value = data.full_name;
+                document.getElementById('s-phone').value = data.phone;
+                document.getElementById('s-type').value = data.employee_type;
+                document.getElementById('s-join').value = data.joining_date;
+                document.getElementById('s-desig').value = data.designation;
+                document.getElementById('s-addr').value = data.address;
+                document.getElementById('modal-title').innerText = "Update Staff Details";
+                document.getElementById('staff-modal').classList.add('active');
+            }
+        };
+
+        window.deleteStaff = async (id) => {
+            if(confirm("Are you sure you want to remove this staff?")) {
+                await sb.from('staff').delete().eq('id', id);
+                loadStaff();
+            }
+        };
+
+        document.getElementById('open-add-btn').onclick = () => {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('modal-title').innerText = "New Staff Registration";
+            document.querySelectorAll('#staff-modal input').forEach(i => i.value = '');
+            document.getElementById('staff-modal').classList.add('active');
+        };
+        window.closeModal = () => document.getElementById('staff-modal').classList.remove('active');
+        document.getElementById('staff-search').oninput = (e) => loadStaff(e.target.value);
+    </script>
+</body>
+</html>
