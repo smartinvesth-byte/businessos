@@ -3,40 +3,46 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Attendance Manager - Brain OS</title>
-    
-    <link rel="stylesheet" href="../../assets/css/style.css">
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <title>Smart Attendance - Brain OS</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../../assets/css/style.css">
     <style>
         .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); }
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; width: 100%; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 0.7rem; text-decoration: none; flex: 1; gap: 4px; }
         .nav-item.active { color: #3b82f6; }
-        .container { padding: 80px 15px 100px; min-height: 100vh; background: #0f172a; color: white; }
+        .main-container { padding: 75px 15px 100px; min-height: 100vh; background: #0f172a; color: white; }
 
-        /* Today's Stats */
-        .stats-strip { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
-        .stat-box { background: #1e293b; padding: 12px; border-radius: 12px; text-align: center; border: 1px solid rgba(255,255,255,0.05); }
-        .stat-box small { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; }
-        .stat-box div { font-size: 1rem; font-weight: 700; margin-top: 4px; }
+        /* Date Controller */
+        .date-bar { display: flex; align-items: center; justify-content: center; gap: 20px; margin-bottom: 20px; background: #1e293b; padding: 12px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.05); }
+        .date-display { font-weight: 700; font-size: 1rem; color: #3b82f6; }
+        .arrow-btn { background: rgba(255,255,255,0.05); border: none; color: white; border-radius: 50%; width: 32px; height: 32px; display: flex; align-items: center; justify-content: center; cursor: pointer; }
+        .arrow-btn:disabled { opacity: 0.2; cursor: not-allowed; }
 
-        /* Attendance List */
-        .staff-att-card { background: #1e293b; border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
-        .att-header { display: flex; justify-content: space-between; align-items: center; }
-        .staff-name { font-weight: 700; font-size: 0.95rem; }
-        .staff-dept { font-size: 0.7rem; color: #94a3b8; }
+        /* Toggles */
+        .toggle-group { display: flex; gap: 10px; margin-bottom: 20px; }
+        .toggle-tab { flex: 1; background: #1e293b; padding: 10px; border-radius: 10px; text-align: center; font-size: 0.75rem; font-weight: 600; color: #94a3b8; border: 1px solid rgba(255,255,255,0.05); cursor: pointer; }
+        .toggle-tab.active { background: #3b82f6; color: white; border-color: #3b82f6; }
 
-        .btn-group { display: flex; gap: 8px; margin-top: 15px; }
-        .att-btn { flex: 1; padding: 10px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; color: white; font-size: 0.7rem; font-weight: 700; cursor: pointer; }
-        .att-btn.active-p { background: #22c55e; border-color: #22c55e; }
-        .att-btn.active-a { background: #ef4444; border-color: #ef4444; }
-        .att-btn.active-h { background: #f59e0b; border-color: #f59e0b; }
+        /* Summary */
+        .stats-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 20px; }
+        .stat-card { background: #1e293b; padding: 12px; border-radius: 12px; text-align: center; }
+        .stat-card small { font-size: 0.6rem; color: #94a3b8; display: block; }
+        .stat-card b { font-size: 1.1rem; }
 
-        .time-row { display: flex; justify-content: space-between; margin-top: 12px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
-        .time-box { font-size: 0.7rem; color: #94a3b8; }
-        .time-box span { color: white; font-weight: 600; display: block; margin-top: 2px; }
+        /* Staff Card */
+        .att-card { background: #1e293b; border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .att-head { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .st-name { font-weight: 700; font-size: 1rem; }
+        .st-info { font-size: 0.75rem; color: #94a3b8; }
+
+        .btn-row { display: flex; gap: 8px; }
+        .btn-att { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.1); background: #0f172a; color: white; font-weight: 800; cursor: pointer; font-size: 0.8rem; }
+        .btn-att.active-p { background: #22c55e; border-color: #22c55e; }
+        .btn-att.active-a { background: #ef4444; border-color: #ef4444; }
+        .btn-att.active-h { background: #f59e0b; border-color: #f59e0b; }
+        .btn-att.active-l { background: #8b5cf6; border-color: #8b5cf6; }
     </style>
 </head>
 <body>
@@ -44,23 +50,45 @@
     <header class="top-navbar">
         <div style="display: flex; align-items: center; gap: 10px;">
             <div onclick="location.href='../../workspace.html'" style="cursor:pointer"><i data-lucide="chevron-left"></i></div>
-            <span style="font-weight: 700;">Daily Attendance</span>
+            <span style="font-weight: 700;">Smart Attendance</span>
         </div>
-        <div style="font-size: 0.8rem; font-weight: 600; color: #3b82f6;" id="today-date">Loading...</div>
+        <div style="display: flex; gap: 15px;">
+            <i data-lucide="file-text" size="20" onclick="alert('Monthly Report Coming Soon')"></i>
+        </div>
     </header>
 
-    <main class="container">
-        <!-- Stats Summary -->
-        <div class="stats-strip">
-            <div class="stat-box"><small>Present</small><div id="count-p" style="color:#22c55e">0</div></div>
-            <div class="stat-box"><small>Absent</small><div id="count-a" style="color:#ef4444">0</div></div>
-            <div class="stat-box"><small>On Leave</small><div id="count-l" style="color:#f59e0b">0</div></div>
+    <main class="main-container">
+        
+        <!-- 1. Date Selector -->
+        <div class="date-bar">
+            <button class="arrow-btn" onclick="changeDate(-1)"><i data-lucide="chevron-left" size="18"></i></button>
+            <div class="date-display" id="date-text">26 May</div>
+            <button class="arrow-btn" id="next-btn" onclick="changeDate(1)"><i data-lucide="chevron-right" size="18"></i></button>
         </div>
 
-        <!-- Staff Attendance List -->
-        <div id="attendance-list">
-            <p style="text-align:center; color:gray; margin-top:50px;">Fetching Staff Members...</p>
+        <!-- 2. Dual Toggles -->
+        <div class="toggle-group">
+            <div class="toggle-tab active" id="mode-gen" onclick="setMode('General')">General</div>
+            <div class="toggle-tab" id="mode-shift" onclick="setMode('Shift-wise')">Shift-wise</div>
         </div>
+
+        <div class="toggle-group" style="margin-top: -10px;">
+            <div class="toggle-tab active" id="shift-day" onclick="setShift('Day')">Day Shift</div>
+            <div class="toggle-tab" id="shift-night" onclick="setShift('Night')">Night Shift</div>
+        </div>
+
+        <!-- 3. Stats -->
+        <div class="stats-grid">
+            <div class="stat-card"><small>PRESENT</small><b id="count-p" style="color:#22c55e">0</b></div>
+            <div class="stat-card"><small>ABSENT</small><b id="count-a" style="color:#ef4444">0</b></div>
+            <div class="stat-card"><small>LEAVE</small><b id="count-l" style="color:#8b5cf6">0</b></div>
+        </div>
+
+        <!-- 4. Staff List -->
+        <div id="staff-att-list">
+            <p style="text-align: center; color: gray; margin-top: 50px;">Syncing Attendance...</p>
+        </div>
+
     </main>
 
     <nav class="bottom-nav">
@@ -72,44 +100,59 @@
     </nav>
 
     <script>
-        // CONFIG
         const SB_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
         const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
-
         let sb, bID = null;
-        const today = new Date().toISOString().split('T')[0];
+
+        let viewingDate = new Date();
+        let currentMode = 'General';
+        let currentShift = 'Day';
 
         window.onload = async () => {
-            document.getElementById('today-date').innerText = new Date().toLocaleDateString('en-GB', { day:'numeric', month:'short' });
             lucide.createIcons();
-
-            try {
-                sb = window.supabase.createClient(SB_URL, SB_KEY);
-                const { data: { user } } = await sb.auth.getUser();
-                if(!user) return window.location.href = '../../login.html';
-
-                const { data: biz } = await sb.from('businesses').select('id').eq('owner_id', user.id).maybeSingle();
-                bID = biz.id;
-                
-                loadAttendance();
-            } catch (e) { console.error(e); }
+            sb = window.supabase.createClient(SB_URL, SB_KEY);
+            const { data: { user } } = await sb.auth.getUser();
+            if(!user) return window.location.href = '../../login.html';
+            const { data: biz } = await sb.from('businesses').select('id').eq('owner_id', user.id).maybeSingle();
+            bID = biz.id;
+            updateUI();
         };
 
-        async function loadAttendance() {
-            const container = document.getElementById('attendance-list');
+        function updateUI() {
+            // Update Date Display
+            const options = { day: 'numeric', month: 'short' };
+            document.getElementById('date-text').innerText = viewingDate.toLocaleDateString('en-GB', options);
             
-            // 1. Get all staff
+            // Block Next Date if Future
+            const today = new Date();
+            today.setHours(0,0,0,0);
+            const vDate = new Date(viewingDate);
+            vDate.setHours(0,0,0,0);
+            document.getElementById('next-btn').disabled = vDate >= today;
+
+            loadAttendanceData();
+        }
+
+        async function loadAttendanceData() {
+            const container = document.getElementById('staff-att-list');
+            const dateStr = viewingDate.toISOString().split('T')[0];
+
+            // 1. Get Staff
             const { data: staff } = await sb.from('staff').select('*').eq('business_id', bID).eq('status', 'Active');
             
-            // 2. Get today's logs
-            const { data: logs } = await sb.from('attendance').select('*').eq('business_id', bID).eq('date', today);
+            // 2. Get Logs for specific Date, Shift, and Mode
+            const { data: logs } = await sb.from('attendance')
+                .select('*')
+                .eq('business_id', bID)
+                .eq('date', dateStr)
+                .eq('shift_type', currentShift);
 
             if(!staff || staff.length === 0) {
-                container.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No active staff found. Add staff first.</p>`;
+                container.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No staff found.</p>`;
                 return;
             }
 
-            // Summary Counts
+            // Update Summary
             document.getElementById('count-p').innerText = logs.filter(l => l.status === 'Present').length;
             document.getElementById('count-a').innerText = logs.filter(l => l.status === 'Absent').length;
             document.getElementById('count-l').innerText = logs.filter(l => l.status === 'Leave').length;
@@ -119,53 +162,57 @@
                 const status = log ? log.status : 'None';
                 
                 return `
-                <div class="staff-att-card">
-                    <div class="att-header">
+                <div class="att-card">
+                    <div class="att-head">
                         <div>
-                            <div class="staff-name">${s.full_name}</div>
-                            <div class="staff-dept">${s.designation || 'Staff'}</div>
+                            <div class="st-name">${s.full_name}</div>
+                            <div class="st-info">${s.designation || 'Staff'}</div>
                         </div>
-                        <div style="font-size:0.6rem; color:#94a3b8">ID: ${s.id.slice(0,5)}</div>
+                        <div class="st-info">#${s.id.slice(0,4)}</div>
                     </div>
-
-                    <div class="btn-group">
-                        <button class="att-btn ${status === 'Present' ? 'active-p' : ''}" onclick="markAtt('${s.id}', 'Present')">P</button>
-                        <button class="att-btn ${status === 'Absent' ? 'active-a' : ''}" onclick="markAtt('${s.id}', 'Absent')">A</button>
-                        <button class="att-btn ${status === 'Half Day' ? 'active-h' : ''}" onclick="markAtt('${s.id}', 'Half Day')">1/2</button>
-                        <button class="att-btn ${status === 'Leave' ? 'active-h' : ''}" onclick="markAtt('${s.id}', 'Leave')">L</button>
+                    <div class="btn-row">
+                        <button class="btn-att ${status === 'Present' ? 'active-p' : ''}" onclick="mark('${s.id}', 'Present')">P</button>
+                        <button class="btn-att ${status === 'Absent' ? 'active-a' : ''}" onclick="mark('${s.id}', 'Absent')">A</button>
+                        <button class="btn-att ${status === 'Half Day' ? 'active-h' : ''}" onclick="mark('${s.id}', 'Half Day')">1/2</button>
+                        <button class="btn-att ${status === 'Leave' ? 'active-l' : ''}" onclick="mark('${s.id}', 'Leave')">L</button>
                     </div>
-
-                    ${status === 'Present' || status === 'Half Day' ? `
-                    <div class="time-row">
-                        <div class="time-box">IN <span>${log.check_in || '--:--'}</span></div>
-                        <div class="time-box">OUT <span onclick="setOutTime('${log.id}')" style="color:#3b82f6">${log.check_out || 'SET OUT'}</span></div>
-                        <div class="time-box">HOURS <span>${log.total_hours || '0'}h</span></div>
-                    </div>
-                    ` : ''}
                 </div>`;
             }).join('');
             lucide.createIcons();
         }
 
-        window.markAtt = async (staffId, status) => {
-            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
-            
+        window.mark = async (staffId, status) => {
+            const dateStr = viewingDate.toISOString().split('T')[0];
             const { error } = await sb.from('attendance').upsert({
                 business_id: bID,
                 staff_id: staffId,
-                date: today,
+                date: dateStr,
                 status: status,
-                check_in: (status === 'Present' || status === 'Half Day') ? time : null
+                shift_type: currentShift,
+                attendance_mode: currentMode
             }, { onConflict: 'staff_id, date' });
 
-            if(error) alert(error.message);
-            else loadAttendance();
+            if(!error) loadAttendanceData();
+            else alert(error.message);
         };
 
-        window.setOutTime = async (logId) => {
-            const time = new Date().toLocaleTimeString('en-GB', { hour12: false });
-            await sb.from('attendance').update({ check_out: time }).eq('id', logId);
-            loadAttendance();
+        window.changeDate = (days) => {
+            viewingDate.setDate(viewingDate.getDate() + days);
+            updateUI();
+        };
+
+        window.setMode = (m) => {
+            currentMode = m;
+            document.getElementById('mode-gen').classList.toggle('active', m === 'General');
+            document.getElementById('mode-shift').classList.toggle('active', m === 'Shift-wise');
+            loadAttendanceData();
+        };
+
+        window.setShift = (s) => {
+            currentShift = s;
+            document.getElementById('shift-day').classList.toggle('active', s === 'Day');
+            document.getElementById('shift-night').classList.toggle('active', s === 'Night');
+            loadAttendanceData();
         };
 
         if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
