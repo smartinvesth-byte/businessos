@@ -112,63 +112,88 @@
             sb = window.supabase.createClient(SB_URL, SB_KEY);
         };
 
-        document.getElementById('master-signup-form').onsubmit = async (e) => {
-            e.preventDefault();
-            const btn = document.getElementById('signup-btn');
-            btn.innerText = "Processing...";
-            btn.disabled = true;
+        // signup.html ke script section mein 'master-signup-form' wala logic isse badal dein:
 
-            const email = document.getElementById('s-email').value;
-            const password = document.getElementById('s-password').value;
+document.getElementById('master-signup-form').onsubmit = async (e) => {
+    e.preventDefault();
+    const btn = document.getElementById('signup-btn');
+    btn.innerText = "Creating Account...";
+    btn.disabled = true;
+
+    const email = document.getElementById('s-email').value;
+    const password = document.getElementById('s-password').value;
+    
+    const userData = {
+        fullName: document.getElementById('s-name').value,
+        phone: document.getElementById('s-phone').value,
+        gender: document.getElementById('s-gender').value,
+        dob: document.getElementById('s-dob').value,
+        bizName: document.getElementById('s-bizname').value,
+        category: document.getElementById('s-category').value
+    };
+
+    try {
+        // 1. Create Auth User
+        const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
+        if (authError) throw new Error("Auth Error: " + authError.message);
+        
+        const user = authData.user;
+        if(!user) throw new Error("User creation failed.");
+
+        console.log("Auth User Created:", user.id);
+
+        // 2. Create Profile
+        const { error: profError } = await sb.from('profiles').insert([{
+            id: user.id, 
+            full_name: userData.fullName, 
+            gender: userData.gender,
+            dob: userData.dob, 
+            phone: userData.phone
+        }]);
+        if(profError) console.warn("Profile Insert Warning:", profError.message);
+
+        // 3. Create Business
+        const { data: bizData, error: bizError } = await sb.from('businesses').insert([{
+            owner_id: user.id, 
+            business_name: userData.bizName, 
+            business_category: userData.category
+        }]).select();
+
+        if (bizError) throw new Error("Business Table Error: " + bizError.message);
+        if (!bizData || bizData.length === 0) throw new Error("Business ID could not be generated.");
+
+        const bizId = bizData[0].id;
+        console.log("Business Created:", bizId);
+
+        // 4. Link Admin Role
+        await sb.from('business_members').insert([{
+            business_id: bizId, 
+            user_id: user.id, 
+            role: 'admin'
+        }]);
+
+        // 5. Start Trial
+        const expiry = new Date();
+        expiry.setDate(expiry.getDate() + 7);
+        await sb.from('subscriptions').insert([{
+            business_id: bizId, 
+            plan_type: 'free', 
+            status: 'active', 
+            expiry_date: expiry.toISOString()
+        }]);
+
+        alert("Account setup complete! Redirecting...");
+        window.location.href = 'dashboard.html';
+
+    } catch (err) {
+        console.error(err);
+        alert("Signup Failed: " + err.message);
+        btn.innerText = "Create Admin Account";
+        btn.disabled = false;
+    }
+};
+
             
-            const userData = {
-                fullName: document.getElementById('s-name').value,
-                phone: document.getElementById('s-phone').value,
-                gender: document.getElementById('s-gender').value,
-                dob: document.getElementById('s-dob').value,
-                bizName: document.getElementById('s-bizname').value,
-                category: document.getElementById('s-category').value
-            };
-
-            try {
-                // 1. Create Auth User
-                const { data: authData, error: authError } = await sb.auth.signUp({ email, password });
-                if (authError) throw authError;
-                
-                const user = authData.user;
-                if(user) {
-                    // 2. Create Profile
-                    await sb.from('profiles').insert([{
-                        id: user.id, full_name: userData.fullName, gender: userData.gender,
-                        dob: userData.dob, phone: userData.phone
-                    }]);
-
-                    // 3. Create Business
-                    const { data: biz } = await sb.from('businesses').insert([{
-                        owner_id: user.id, business_name: userData.bizName, business_category: userData.category
-                    }]).select().single();
-
-                    // 4. Link Admin Role
-                    await sb.from('business_members').insert([{
-                        business_id: biz.id, user_id: user.id, role: 'admin'
-                    }]);
-
-                    // 5. Start Trial
-                    const expiry = new Date();
-                    expiry.setDate(expiry.getDate() + 7);
-                    await sb.from('subscriptions').insert([{
-                        business_id: biz.id, plan_type: 'free', status: 'active', expiry_date: expiry.toISOString()
-                    }]);
-
-                    alert("Welcome! Account created successfully.");
-                    window.location.href = 'dashboard.html';
-                }
-            } catch (err) {
-                alert("Signup Error: " + err.message);
-                btn.innerText = "Create Admin Account";
-                btn.disabled = false;
-            }
-        };
     </script>
 </body>
 </html>
