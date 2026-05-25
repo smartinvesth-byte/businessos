@@ -131,32 +131,36 @@
             loadCustomers();
         }
 
-        // LOAD CUSTOMER LIST
-        async function loadCustomers(search = '') {
-            const container = document.getElementById('customer-list-area');
-            
-            let query = supabase.from('customers').select('*').eq('business_id', businessId);
-            
-            if(search) {
-                query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%`);
-            }
+        // module.html ke script section mein 'loadCustomers' function ko isse replace karein:
 
-            const { data, error } = await query.order('created_at', { ascending: false });
+async function loadCustomers(search = '') {
+    const container = document.getElementById('customer-list-area');
+    
+    try {
+        // Business ID check
+        if (!businessId) {
+            const { data: { user } } = await supabase.auth.getUser();
+            const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single();
+            businessId = biz?.id;
+        }
 
-            if(error) {
-                container.innerHTML = `<p style="text-align:center; color:red">Error loading data</p>`;
-                return;
-            }
+        let query = supabase.from('customers').select('*').eq('business_id', businessId);
+        
+        // Search filter fix
+        if (search) {
+            query = query.ilike('name', `%${search}%`);
+        }
 
-            if(!data || data.length === 0) {
-                container.innerHTML = `<div style="text-align:center; margin-top:60px; opacity:0.5">
-                    <i data-lucide="users" size="40"></i>
-                    <p style="margin-top:10px">No customers found.</p>
-                </div>`;
-                lucide.createIcons();
-                return;
-            }
+        const { data, error } = await query.order('created_at', { ascending: false });
 
+        if (error) throw error;
+
+        if (!data || data.length === 0) {
+            container.innerHTML = `<div style="text-align:center; margin-top:60px; opacity:0.5">
+                <i data-lucide="users" size="40"></i>
+                <p style="margin-top:10px">No customers found.</p>
+            </div>`;
+        } else {
             container.innerHTML = data.map(c => `
                 <div class="customer-card">
                     <div class="cust-header">
@@ -169,36 +173,25 @@
                             <div style="font-size: 0.75rem">${c.address || 'Not set'}</div>
                         </div>
                     </div>
-
                     <div class="balance-strip">
-                        <div class="balance-item">
-                            <span class="bal-label">Total</span>
-                            <span class="bal-value">₹${c.total_amount}</span>
-                        </div>
-                        <div class="balance-item">
-                            <span class="bal-label">Paid</span>
-                            <span class="bal-value" style="color:var(--success)">₹${c.advance_paid}</span>
-                        </div>
-                        <div class="balance-item" style="text-align: right">
-                            <span class="bal-label">Balance</span>
-                            <span class="bal-value" style="color:${c.remaining_balance > 0 ? 'var(--warning)' : 'var(--text-main)'}">₹${c.remaining_balance}</span>
-                        </div>
+                        <div class="balance-item"><span class="bal-label">Total</span><span class="bal-value">₹${c.total_amount}</span></div>
+                        <div class="balance-item"><span class="bal-label">Paid</span><span class="bal-value" style="color:var(--success)">₹${c.advance_paid}</span></div>
+                        <div class="balance-item" style="text-align: right"><span class="bal-label">Balance</span><span class="bal-value" style="color:var(--warning)">₹${c.remaining_balance}</span></div>
                     </div>
-
                     <div class="card-actions">
-                        <div class="act-btn" onclick="editCust('${c.id}')">
-                            <i data-lucide="edit-2" size="14" style="color:var(--accent-color)"></i>
-                            <span>UPDATE</span>
-                        </div>
-                        <div class="act-btn" onclick="deleteCust('${c.id}')" style="color:var(--danger)">
-                            <i data-lucide="trash-2" size="14"></i>
-                            <span>REMOVE</span>
-                        </div>
+                        <div class="act-btn" onclick="editCust('${c.id}')"><i data-lucide="edit-2" size="14"></i> UPDATE</div>
+                        <div class="act-btn" onclick="deleteCust('${c.id}')" style="color:var(--danger)"><i data-lucide="trash-2" size="14"></i> REMOVE</div>
                     </div>
                 </div>
             `).join('');
-            lucide.createIcons();
         }
+        lucide.createIcons();
+
+    } catch (err) {
+        console.error("Fetch Error:", err);
+        container.innerHTML = `<p style="text-align:center; color:#ef4444; padding:20px;">Error loading data: ${err.message}</p>`;
+    }
+}
 
         // SAVE OR UPDATE
         document.getElementById('save-btn').onclick = async () => {
