@@ -12,15 +12,21 @@
         .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: var(--bg-secondary); display: flex; justify-content: space-around; align-items: center; border-top: 1px solid var(--border-color); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
         .nav-item { display: flex; flex-direction: column; align-items: center; color: var(--text-muted); font-size: 0.7rem; text-decoration: none; flex: 1; }
         .nav-item.active { color: var(--accent-color); }
-        .module-container { padding: 80px 20px 100px; }
+        .container { padding: 80px 20px 100px; }
+        
         .action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
-        .search-input { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); color: white; padding: 12px; border-radius: 10px; outline: none; }
-        .add-btn { background: var(--accent-color); color: white; border: none; padding: 0 15px; border-radius: 10px; display: flex; align-items: center; justify-content: center; }
-        .cust-card { margin-bottom: 12px; position: relative; overflow: hidden; }
-        .cust-type-tag { position: absolute; top: 10px; right: 10px; font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; background: rgba(59,130,246,0.1); color: var(--accent-color); font-weight: 700; }
-        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: flex-end; justify-content: center; }
+        .search-box { flex: 1; background: var(--bg-secondary); border: 1px solid var(--border-color); display: flex; align-items: center; padding: 0 12px; border-radius: 12px; }
+        .search-box input { border: none; background: transparent; color: white; padding: 12px 5px; width: 100%; outline: none; }
+        .add-btn { background: var(--accent-color); color: white; width: 45px; height: 45px; border-radius: 12px; display: flex; align-items: center; justify-content: center; }
+
+        .cust-card { margin-bottom: 15px; position: relative; }
+        .cust-actions { display: flex; gap: 15px; margin-top: 15px; border-top: 1px solid var(--border-color); padding-top: 10px; }
+        .action-icon { color: var(--text-muted); cursor: pointer; }
+
+        /* Modal Styles */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
         .modal.active { display: flex; }
-        .modal-content { background: var(--bg-card); width: 100%; max-width: 500px; padding: 25px; border-radius: 25px 25px 0 0; animation: slideUp 0.3s ease-out; }
+        .modal-content { background: var(--bg-card); width: 100%; border-radius: 25px 25px 0 0; padding: 25px; animation: slideUp 0.3s ease-out; max-height: 85vh; overflow-y: auto; }
         @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
     </style>
 </head>
@@ -28,52 +34,47 @@
 
     <header class="top-navbar">
         <div style="display: flex; align-items: center; gap: 10px;">
-            <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'" style="cursor: pointer;"></i>
+            <i data-lucide="chevron-left" onclick="location.href='../../workspace.html'"></i>
             <span style="font-weight: 700; font-size: 1.1rem;">Customer Manager</span>
         </div>
-        <i data-lucide="refresh-cw" size="20" id="sync-btn" style="cursor: pointer;"></i>
+        <i data-lucide="refresh-cw" size="20" onclick="location.reload()"></i>
     </header>
 
-    <main class="module-container">
+    <main class="container">
         <div class="action-bar">
-            <input type="text" id="cust-search" class="search-input" placeholder="Name, Email or Phone...">
-            <button class="add-btn" id="open-modal"><i data-lucide="plus"></i></button>
+            <div class="search-box">
+                <i data-lucide="search" size="18" style="color:var(--text-muted)"></i>
+                <input type="text" id="cust-search" placeholder="Search customers...">
+            </div>
+            <div class="add-btn" id="open-add-modal"><i data-lucide="plus"></i></div>
         </div>
+
         <div id="customer-list">
-            <p style="text-align: center; color: var(--text-muted); margin-top: 50px;">Fetching records...</p>
+            <!-- List will be here -->
         </div>
     </main>
 
-    <!-- Detailed Add Customer Modal -->
-    <div class="modal" id="cust-modal">
+    <!-- Detailed Modal -->
+    <div class="modal" id="customer-modal">
         <div class="modal-content">
-            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                <h3 style="margin:0;">New Customer</h3>
-                <i data-lucide="x" onclick="closeModal()" style="cursor:pointer;"></i>
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <h3 id="modal-title">New Customer</h3>
+                <i data-lucide="x" onclick="closeModal()"></i>
             </div>
             
-            <div style="max-height: 70vh; overflow-y: auto; padding-right: 5px;">
-                <div class="form-group"><label>Full Name *</label><input type="text" id="new-name" placeholder="John Doe"></div>
-                <div class="form-group"><label>WhatsApp / Phone</label><input type="tel" id="new-phone" placeholder="91XXXXXXXX"></div>
-                <div class="form-group"><label>Email Address</label><input type="email" id="new-email" placeholder="john@example.com"></div>
-                
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                    <div class="form-group">
-                        <label>Customer Type</label>
-                        <select id="new-type" style="width:100%; background:var(--bg-secondary); color:white; padding:12px; border:1px solid var(--border-color); border-radius:10px;">
-                            <option value="Regular">Regular</option>
-                            <option value="VIP">VIP</option>
-                            <option value="Wholesale">Wholesale</option>
-                        </select>
-                    </div>
-                    <div class="form-group"><label>GSTIN (Optional)</label><input type="text" id="new-gst" placeholder="GST Number"></div>
-                </div>
-                
-                <div class="form-group"><label>Full Address</label><input type="text" id="new-addr" placeholder="House, Street, City"></div>
-                <div class="form-group"><label>Opening Balance (₹)</label><input type="number" id="new-bal" value="0"></div>
+            <input type="hidden" id="edit-id">
+            <div class="form-group"><label>Full Name *</label><input type="text" id="m-name" placeholder="Name"></div>
+            <div class="form-group"><label>Phone / WhatsApp</label><input type="tel" id="m-phone" placeholder="91..."></div>
+            <div class="form-group"><label>Full Address</label><input type="text" id="m-addr" placeholder="City, State"></div>
+            
+            <!-- Financial Section (Requirement) -->
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; background: rgba(255,255,255,0.03); padding: 15px; border-radius: 15px; margin: 15px 0;">
+                <div class="form-group"><label>Total Amount</label><input type="number" id="m-total" value="0"></div>
+                <div class="form-group"><label>Advance Paid</label><input type="number" id="m-paid" value="0"></div>
+                <div class="form-group" style="grid-column: span 2;"><label>Remaining Balance (Auto)</label><input type="number" id="m-rem" value="0" readonly style="background: rgba(34, 197, 94, 0.1); color: var(--success); font-weight: 800;"></div>
             </div>
 
-            <button class="btn btn-primary" id="save-cust" style="width: 100%; margin-top: 20px;">Save Customer Profile</button>
+            <button class="btn btn-primary" id="save-btn" style="width: 100%;">Confirm & Save Profile</button>
         </div>
     </div>
 
@@ -89,88 +90,122 @@
         import { supabase } from '../../database/supabase.js';
         lucide.createIcons();
 
-        let businessId = null;
+        let currentBizId = null;
 
-        async function getContext() {
+        // Auto Calculate Remaining Balance
+        const calcBalance = () => {
+            const total = parseFloat(document.getElementById('m-total').value) || 0;
+            const paid = parseFloat(document.getElementById('m-paid').value) || 0;
+            document.getElementById('m-rem').value = (total - paid).toFixed(2);
+        };
+        document.getElementById('m-total').oninput = calcBalance;
+        document.getElementById('m-paid').oninput = calcBalance;
+
+        // Fetch Data
+        async function fetchApp() {
             const { data: { user } } = await supabase.auth.getUser();
             const { data: biz } = await supabase.from('businesses').select('id').eq('owner_id', user.id).single();
-            businessId = biz.id;
-            loadCustomers();
+            currentBizId = biz.id;
+            loadList();
         }
 
-        async function loadCustomers(search = '') {
-            let query = supabase.from('customers').select('*').eq('business_id', businessId);
-            if(search) query = query.or(`name.ilike.%${search}%,phone.ilike.%${search}%,email.ilike.%${search}%`);
+        async function loadList(search = '') {
+            const listDiv = document.getElementById('customer-list');
+            listDiv.innerHTML = '<p style="text-align:center">Loading...</p>';
 
-            const { data: customers, error } = await query.order('created_at', { ascending: false });
+            let query = supabase.from('customers').select('*').eq('business_id', currentBizId);
+            if(search) query = query.ilike('name', `%${search}%`);
             
-            const list = document.getElementById('customer-list');
-            if(!customers || customers.length === 0) {
-                list.innerHTML = `<p style="text-align: center; color: var(--text-muted); margin-top: 50px;">No customers registered yet.</p>`;
+            const { data } = await query.order('created_at', { ascending: false });
+
+            if(!data || data.length === 0) {
+                listDiv.innerHTML = '<p style="text-align:center; margin-top:50px; color:gray;">No customers yet.</p>';
                 return;
             }
 
-            list.innerHTML = customers.map(c => `
+            listDiv.innerHTML = data.map(c => `
                 <div class="card cust-card">
-                    <span class="cust-type-tag">${c.customer_type}</span>
-                    <div style="display:flex; align-items:center; gap:15px;">
-                        <div style="width:45px; height:45px; background:var(--accent-color); border-radius:50%; display:flex; align-items:center; justify-content:center; font-weight:bold; color:white;">
-                            ${c.name.charAt(0)}
+                    <div style="display:flex; justify-content:space-between; align-items:start;">
+                        <div>
+                            <h4 style="margin:0">${c.name}</h4>
+                            <p style="font-size:0.75rem; color:gray; margin:5px 0;">${c.phone || ''} | ${c.address || ''}</p>
                         </div>
-                        <div class="cust-info">
-                            <h4 style="margin:0;">${c.name}</h4>
-                            <p style="margin:2px 0 0; color:var(--text-muted); font-size:0.75rem;">${c.phone || 'No phone'} | ${c.address || 'No address'}</p>
+                        <div style="text-align:right">
+                            <div style="font-size:0.9rem; font-weight:800; color:var(--success)">₹${c.remaining_balance}</div>
+                            <small style="color:gray">Balance</small>
                         </div>
                     </div>
-                    <div style="margin-top:15px; padding-top:10px; border-top:1px solid var(--border-color); display:flex; justify-content:space-between; align-items:center;">
-                        <span style="font-size:0.7rem; color:var(--text-muted);">Balance: <b style="color:${c.current_balance < 0 ? 'var(--danger)' : 'var(--success)'}">₹${c.current_balance}</b></span>
-                        <span style="font-size:0.7rem; color:var(--text-muted);">${c.total_orders} Orders</span>
+                    <div class="cust-actions">
+                        <span class="action-icon" onclick="editCustomer('${c.id}')"><i data-lucide="edit-3" size="16"></i> Edit</span>
+                        <span class="action-icon" style="color:var(--danger)" onclick="deleteCustomer('${c.id}')"><i data-lucide="trash-2" size="16"></i> Remove</span>
                     </div>
                 </div>
             `).join('');
             lucide.createIcons();
         }
 
-        document.getElementById('save-cust').onclick = async () => {
-            const btn = document.getElementById('save-cust');
-            btn.innerText = "Saving...";
-            btn.disabled = true;
-
+        // Save / Update
+        document.getElementById('save-btn').onclick = async () => {
+            const id = document.getElementById('edit-id').value;
             const payload = {
-                business_id: businessId,
-                name: document.getElementById('new-name').value,
-                phone: document.getElementById('new-phone').value,
-                email: document.getElementById('new-email').value,
-                customer_type: document.getElementById('new-type').value,
-                gst_number: document.getElementById('new-gst').value,
-                address: document.getElementById('new-addr').value,
-                current_balance: parseFloat(document.getElementById('new-bal').value) || 0
+                business_id: currentBizId,
+                name: document.getElementById('m-name').value,
+                phone: document.getElementById('m-phone').value,
+                address: document.getElementById('m-addr').value,
+                total_amount: parseFloat(document.getElementById('m-total').value),
+                advance_paid: parseFloat(document.getElementById('m-paid').value),
+                remaining_balance: parseFloat(document.getElementById('m-rem').value)
             };
 
-            const { error } = await supabase.from('customers').insert([payload]);
+            if(!payload.name) return alert("Name is required!");
 
-            if(error) {
-                alert("Database Error: " + error.message);
-                btn.innerText = "Save Customer Profile";
-                btn.disabled = false;
-            } else {
-                alert("Customer Saved Successfully!");
+            const { error } = id 
+                ? await supabase.from('customers').update(payload).eq('id', id)
+                : await supabase.from('customers').insert([payload]);
+
+            if(error) alert(error.message);
+            else {
                 closeModal();
-                loadCustomers();
-                btn.innerText = "Save Customer Profile";
-                btn.disabled = false;
-                // Clear inputs
-                document.querySelectorAll('.modal-content input').forEach(i => i.value = '');
+                loadList();
             }
         };
 
-        const modal = document.getElementById('cust-modal');
-        document.getElementById('open-modal').onclick = () => modal.classList.add('active');
-        window.closeModal = () => modal.classList.remove('active');
-        document.getElementById('cust-search').oninput = (e) => loadCustomers(e.target.value);
-        document.getElementById('sync-btn').onclick = () => loadCustomers();
+        // Edit Function
+        window.editCustomer = async (id) => {
+            const { data } = await supabase.from('customers').select('*').eq('id', id).single();
+            document.getElementById('edit-id').value = data.id;
+            document.getElementById('m-name').value = data.name;
+            document.getElementById('m-phone').value = data.phone;
+            document.getElementById('m-addr').value = data.address;
+            document.getElementById('m-total').value = data.total_amount;
+            document.getElementById('m-paid').value = data.advance_paid;
+            document.getElementById('m-rem').value = data.remaining_balance;
+            
+            document.getElementById('modal-title').innerText = "Update Customer";
+            document.getElementById('customer-modal').classList.add('active');
+            lucide.createIcons();
+        };
 
-        getContext();
+        // Delete Function
+        window.deleteCustomer = async (id) => {
+            if(confirm("Are you sure you want to delete this customer?")) {
+                await supabase.from('customers').delete().eq('id', id);
+                loadList();
+            }
+        };
+
+        // UI Controls
+        document.getElementById('open-add-modal').onclick = () => {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('modal-title').innerText = "New Customer";
+            document.querySelectorAll('.modal-content input').forEach(i => i.value = (i.type === 'number' ? 0 : ''));
+            document.getElementById('customer-modal').classList.add('active');
+        };
+
+        window.closeModal = () => document.getElementById('customer-modal').classList.remove('active');
+        document.getElementById('cust-search').oninput = (e) => loadList(e.target.value);
+
+        fetchApp();
         if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
     </script>
 </body>
