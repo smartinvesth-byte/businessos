@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Inventory Engine - Brain OS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; width: 100%; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 0.7rem; text-decoration: none; flex: 1; gap: 4px; }
+        .nav-item.active { color: #3b82f6; }
+        .container { padding: 75px 15px 100px; min-height: 100vh; background: #0f172a; color: white; }
+
+        /* Search & Add */
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box { flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; height: 48px; }
+        .search-box input { border: none; background: transparent; color: white; width: 100%; outline: none; }
+        .add-btn { background: #3b82f6; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+        /* Inventory Cards */
+        .inv-card { background: #1e293b; border-radius: 16px; padding: 15px; margin-bottom: 12px; border: 1px solid rgba(255,255,255,0.1); }
+        .type-tag { font-size: 0.6rem; padding: 2px 8px; border-radius: 10px; background: rgba(59,130,246,0.1); color: #3b82f6; font-weight: 700; text-transform: uppercase; }
+        .stock-strip { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 10px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; text-align: center; margin-top: 10px; }
+        .s-val { font-size: 0.9rem; font-weight: 700; }
+        .s-label { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; }
+
+        /* Modal Sheet */
+        .modal-bg { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.8); z-index: 2000; align-items: flex-end; }
+        .modal-bg.active { display: flex; }
+        .modal-sheet { background: #1e293b; width: 100%; border-radius: 24px 24px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; }
+        .form-section { color: #3b82f6; font-size: 0.75rem; font-weight: 700; margin: 15px 0 10px; text-transform: uppercase; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 5px; }
+        input, select, textarea { width: 100%; padding: 12px; background: #0f172a; border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: white; margin-bottom: 10px; outline: none; }
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+    <header class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div onclick="location.href='../../workspace.html'" style="cursor:pointer"><i data-lucide="chevron-left"></i></div>
+            <span style="font-weight: 700;">Inventory Engine</span>
+        </div>
+        <i data-lucide="package" size="20" style="color: #3b82f6;"></i>
+    </header>
+
+    <main class="container">
+        <div class="action-bar">
+            <div class="search-box">
+                <i data-lucide="search" size="18" style="color:#94a3b8"></i>
+                <input type="text" id="search-input" placeholder="Search by item name or SKU...">
+            </div>
+            <button class="add-btn" id="add-trigger"><i data-lucide="plus" size="24"></i></button>
+        </div>
+
+        <div id="inventory-list">
+            <p style="text-align: center; color: gray; margin-top: 50px;">Loading Inventory...</p>
+        </div>
+    </main>
+
+    <!-- Master Add/Edit Modal -->
+    <div class="modal-bg" id="modal-container">
+        <div class="modal-sheet">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 15px;">
+                <h3 id="m-header">Add New Item</h3>
+                <div onclick="closeModal()" style="cursor:pointer"><i data-lucide="x"></i></div>
+            </div>
+            
+            <input type="hidden" id="edit-id">
+
+            <!-- A. Basic Information -->
+            <div class="form-section">Basic Information</div>
+            <input type="text" id="f-name" placeholder="Product Name *">
+            <select id="f-type" onchange="toggleFormFields()">
+                <option value="Selling Product">Selling Product</option>
+                <option value="Rental Product">Rental Product</option>
+                <option value="Service Item">Service Item</option>
+                <option value="Asset">Company Asset</option>
+                <option value="Raw Material">Raw Material</option>
+                <option value="Consumable Item">Consumable Item</option>
+            </select>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="f-sku" placeholder="SKU / ID">
+                <input type="text" id="f-barcode" placeholder="Barcode">
+            </div>
+
+            <!-- B. Stock Info (Hidden for Services) -->
+            <div id="section-stock">
+                <div class="form-section">Stock & Units</div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                    <input type="number" id="f-qty" placeholder="Opening Qty">
+                    <select id="f-unit">
+                        <option value="Piece">Piece</option>
+                        <option value="Kg">Kg</option>
+                        <option value="Liter">Liter</option>
+                        <option value="Box">Box</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- C. Price Info -->
+            <div class="form-section">Price Management</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="number" id="f-buy-price" placeholder="Purchase Price">
+                <input type="number" id="f-sell-price" placeholder="Selling Price">
+            </div>
+
+            <!-- D. Rental Specific (Dynamic) -->
+            <div id="section-rental" class="hidden">
+                <div class="form-section">Rental Details</div>
+                <input type="number" id="f-rent-price" placeholder="Rent Price Per Day">
+                <input type="number" id="f-deposit" placeholder="Security Deposit">
+            </div>
+
+            <!-- E. Location -->
+            <div class="form-section">Storage & Location</div>
+            <input type="text" id="f-loc" placeholder="Warehouse / Rack Number">
+
+            <button class="add-btn" id="save-btn" style="width: 100%; margin-top: 20px; height: 50px; font-weight: 700; border-radius: 12px;">Confirm & Save Item</button>
+        </div>
+    </div>
+
+    <!-- Universal Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="../../dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
+        <a href="../../workspace.html" class="nav-item active"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
+        <a href="../../analytics.html" class="nav-item"><i data-lucide="bar-chart-3"></i><span>Analytics</span></a>
+        <a href="../../alerts.html" class="nav-item"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a href="../../profile.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+    </nav>
+
+    <script>
+        // CONFIG (Replace with your keys)
+        const SB_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
+        let sb, bID = null;
+
+        window.onload = async () => {
+            lucide.createIcons();
+            sb = window.supabase.createClient(SB_URL, SB_KEY);
+            const { data: { user } } = await sb.auth.getUser();
+            if(!user) return window.location.href = '../../login.html';
+            const { data: biz } = await sb.from('businesses').select('id').eq('owner_id', user.id).maybeSingle();
+            bID = biz.id;
+            loadInventory();
+        };
+
+        // UI Logic: Show/Hide fields based on Type
+        function toggleFormFields() {
+            const type = document.getElementById('f-type').value;
+            document.getElementById('section-rental').classList.toggle('hidden', type !== 'Rental Product');
+            document.getElementById('section-stock').classList.toggle('hidden', type === 'Service Item');
+        }
+
+        async function loadInventory(q = '') {
+            const list = document.getElementById('inventory-list');
+            let query = sb.from('inventory').select('*').eq('business_id', bID);
+            if(q) query = query.ilike('name', `%${q}%`);
+            
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if(!data || data.length === 0) {
+                list.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No items in inventory.</p>`;
+                return;
+            }
+
+            list.innerHTML = data.map(i => {
+                // Rental Logic
+                const available = i.product_type === 'Rental Product' ? (i.current_qty - i.rented_qty - i.damaged_qty) : i.current_qty;
+                
+                return `
+                <div class="inv-card">
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                        <span class="type-tag">${i.product_type}</span>
+                        <div style="display:flex; gap:12px;">
+                            <i data-lucide="edit-3" size="16" onclick="openEdit('${i.id}')" style="cursor:pointer; color:#94a3b8"></i>
+                            <i data-lucide="trash-2" size="16" onclick="deleteItem('${i.id}')" style="cursor:pointer; color:#ef4444"></i>
+                        </div>
+                    </div>
+                    <div style="font-weight:700; font-size:1rem;">${i.name}</div>
+                    <div style="font-size:0.75rem; color:#94a3b8;">SKU: ${i.sku || 'N/A'} | Loc: ${i.warehouse_location || 'Not Set'}</div>
+                    
+                    <div class="stock-strip">
+                        <div><small>Available</small><div class="s-val" style="color:${available <= i.min_stock ? '#ef4444' : '#22c55e'}">${available}</div></div>
+                        <div><small>Price</small><div class="s-val">₹${i.product_type === 'Rental Product' ? i.rental_price : i.selling_price}</div></div>
+                        <div><small>Type</small><div class="s-val">${i.unit_type}</div></div>
+                    </div>
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        document.getElementById('save-btn').onclick = async () => {
+            const id = document.getElementById('edit-id').value;
+            const type = document.getElementById('f-type').value;
+            
+            const payload = {
+                business_id: bID,
+                name: document.getElementById('f-name').value,
+                product_type: type,
+                sku: document.getElementById('f-sku').value,
+                barcode: document.getElementById('f-barcode').value,
+                current_qty: parseFloat(document.getElementById('f-qty').value || 0),
+                unit_type: document.getElementById('f-unit').value,
+                purchase_price: parseFloat(document.getElementById('f-buy-price').value || 0),
+                selling_price: parseFloat(document.getElementById('f-sell-price').value || 0),
+                rental_price: parseFloat(document.getElementById('f-rent-price').value || 0),
+                deposit_amount: parseFloat(document.getElementById('f-deposit').value || 0),
+                warehouse_location: document.getElementById('f-loc').value
+            };
+
+            if(!payload.name) return alert("Product Name is required");
+
+            const { error } = id ? await sb.from('inventory').update(payload).eq('id', id) : await sb.from('inventory').insert([payload]);
+            if(!error) { closeModal(); loadInventory(); } else { alert(error.message); }
+        };
+
+        window.openEdit = async (id) => {
+            const { data } = await sb.from('inventory').select('*').eq('id', id).single();
+            if(data) {
+                document.getElementById('edit-id').value = data.id;
+                document.getElementById('f-name').value = data.name;
+                document.getElementById('f-type').value = data.product_type;
+                document.getElementById('f-sku').value = data.sku;
+                document.getElementById('f-barcode').value = data.barcode;
+                document.getElementById('f-qty').value = data.current_qty;
+                document.getElementById('f-unit').value = data.unit_type;
+                document.getElementById('f-buy-price').value = data.purchase_price;
+                document.getElementById('f-sell-price').value = data.selling_price;
+                document.getElementById('f-rent-price').value = data.rental_price;
+                document.getElementById('f-deposit').value = data.deposit_amount;
+                document.getElementById('f-loc').value = data.warehouse_location;
+                
+                toggleFormFields();
+                document.getElementById('m-header').innerText = "Update Item";
+                document.getElementById('modal-container').classList.add('active');
+            }
+        };
+
+        window.deleteItem = async (id) => {
+            if(confirm("Delete this item from inventory?")) {
+                await sb.from('inventory').delete().eq('id', id);
+                loadInventory();
+            }
+        };
+
+        document.getElementById('add-trigger').onclick = () => {
+            document.getElementById('edit-id').value = '';
+            document.getElementById('m-header').innerText = "Add New Item";
+            document.querySelectorAll('#modal-container input').forEach(i => i.value = '');
+            document.getElementById('f-qty').value = 0;
+            toggleFormFields();
+            document.getElementById('modal-container').classList.add('active');
+        };
+
+        window.closeModal = () => document.getElementById('modal-container').classList.remove('active');
+        document.getElementById('search-input').oninput = (e) => loadInventory(e.target.value);
+        if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+    </script>
+</body>
+</html>
