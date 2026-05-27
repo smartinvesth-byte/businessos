@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Signup - Business Brain OS</title>
+    
+    <!-- Core Assets -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <link rel="stylesheet" href="assets/css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        .signup-wrapper { padding: 30px 20px; max-width: 450px; margin: 0 auto; }
+        .signup-card { background: #1e293b; padding: 25px; border-radius: 24px; border: 1px solid rgba(255,255,255,0.1); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 6px; font-weight: 600; }
+        .form-group input, .form-group select { 
+            width: 100%; padding: 13px; background: #0f172a; border: 1px solid #334155; 
+            color: white; border-radius: 12px; outline: none; font-family: inherit; font-size: 0.9rem;
+        }
+        .form-group input:focus { border-color: #3b82f6; }
+        .btn-signup { 
+            width: 100%; padding: 15px; background: #3b82f6; color: white; border: none; 
+            border-radius: 14px; font-weight: 700; margin-top: 15px; cursor: pointer;
+            box-shadow: 0 4px 15px rgba(59, 130, 246, 0.3); font-size: 1rem;
+        }
+        .btn-signup:disabled { opacity: 0.6; cursor: not-allowed; }
+    </style>
+</head>
+<body class="bg-dark">
+
+    <div class="signup-wrapper">
+        <div class="text-center" style="margin-bottom: 30px;">
+            <h1 style="color: white; font-size: 2rem; font-weight: 800;">Create Account</h1>
+            <p style="color: #94a3b8; margin-top: 5px;">Join the modular business ecosystem</p>
+        </div>
+
+        <div class="signup-card">
+            <form id="auth-signup-form">
+                <div class="form-group">
+                    <label>Full Name</label>
+                    <input type="text" id="reg-name" placeholder="Enter your name" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email Address</label>
+                    <input type="email" id="reg-email" placeholder="name@example.com" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Mobile Number</label>
+                    <input type="tel" id="reg-phone" placeholder="91XXXXXXXX" required>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+                    <div class="form-group">
+                        <label>Gender</label>
+                        <select id="reg-gender">
+                            <option value="Male">Male</option>
+                            <option value="Female">Female</option>
+                            <option value="Other">Other</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label>Date of Birth</label>
+                        <input type="date" id="reg-dob" required>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Create Password</label>
+                    <input type="password" id="reg-pass" placeholder="Min. 6 characters" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password" id="reg-confirm" placeholder="Repeat your password" required>
+                </div>
+
+                <button type="submit" class="btn-signup" id="reg-btn">Create Admin Account</button>
+            </form>
+        </div>
+
+        <p style="text-align: center; margin-top: 25px; color: #94a3b8; font-size: 0.9rem;">
+            Already have an account? <a href="login.html" style="color: #3b82f6; text-decoration: none; font-weight: 700;">Login</a>
+        </p>
+    </div>
+
+    <script>
+        // --- 1. SUPABASE CONFIGURATION ---
+        const S_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
+
+        let sb;
+        window.onload = () => {
+            sb = window.supabase.createClient(S_URL, S_KEY);
+        };
+
+        // --- 2. SIGNUP LOGIC ---
+        document.getElementById('auth-signup-form').onsubmit = async (e) => {
+            e.preventDefault();
+            const btn = document.getElementById('reg-btn');
+            
+            const pass = document.getElementById('reg-pass').value;
+            const confirmPass = document.getElementById('reg-confirm').value;
+
+            // Password Check
+            if (pass !== confirmPass) {
+                alert("Passwords do not match!");
+                return;
+            }
+
+            btn.innerText = "Creating Account...";
+            btn.disabled = true;
+
+            const email = document.getElementById('reg-email').value;
+            const name = document.getElementById('reg-name').value;
+            const phone = document.getElementById('reg-phone').value;
+            const gender = document.getElementById('reg-gender').value;
+            const dob = document.getElementById('reg-dob').value;
+
+            try {
+                // Step A: Create Auth User
+                const { data: authData, error: authError } = await sb.auth.signUp({ email, password: pass });
+                if (authError) throw authError;
+                
+                const user = authData.user;
+                if(user) {
+                    // Step B: Create Profile
+                    await sb.from('profiles').insert([{
+                        id: user.id, full_name: name, gender: gender, dob: dob, phone: phone
+                    }]);
+
+                    // Step C: Create DEFAULT Business (Necessary for app modules to work)
+                    const { data: biz } = await sb.from('businesses').insert([{
+                        owner_id: user.id, 
+                        business_name: name + "'s Business" 
+                    }]).select().single();
+
+                    // Step D: Link Admin Role
+                    await sb.from('business_members').insert([{
+                        business_id: biz.id, user_id: user.id, role: 'admin'
+                    }]);
+
+                    // Step E: Start 7-Day Trial
+                    const expiry = new Date();
+                    expiry.setDate(expiry.getDate() + 7);
+                    await sb.from('subscriptions').insert([{
+                        business_id: biz.id, plan_type: 'free', status: 'active', expiry_date: expiry.toISOString()
+                    }]);
+
+                    alert("Account created successfully!");
+                    window.location.href = 'dashboard.html';
+                }
+            } catch (err) {
+                alert("Error: " + err.message);
+                btn.innerText = "Create Admin Account";
+                btn.disabled = false;
+            }
+        };
+    </script>
+</body>
+</html>
