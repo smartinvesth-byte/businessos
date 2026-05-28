@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>My Business - Brain OS</title>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+
+    <style>
+        /* UI Consistency */
+        .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; width: 100%; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 0.7rem; text-decoration: none; flex: 1; gap: 4px; }
+        .nav-item.active { color: #3b82f6; }
+        .container { padding: 80px 15px 100px; min-height: 100vh; background: #0f172a; color: white; font-family: sans-serif; }
+
+        .section-title { font-size: 0.75rem; font-weight: 700; color: #3b82f6; text-transform: uppercase; margin: 20px 0 10px; letter-spacing: 1px; }
+        .form-card { background: #1e293b; border-radius: 16px; padding: 20px; border: 1px solid rgba(255,255,255,0.1); margin-bottom: 15px; }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; font-size: 0.75rem; color: #94a3b8; margin-bottom: 5px; }
+        .form-group input, .form-group select, .form-group textarea { 
+            width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; 
+            color: white; border-radius: 10px; outline: none; font-size: 0.9rem;
+        }
+        .btn-save { width: 100%; padding: 16px; background: #3b82f6; color: white; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; margin-top: 10px; }
+        .hidden { display: none; }
+        .custom-type-box { border-left: 3px solid #3b82f6; padding-left: 10px; margin-top: 5px; animation: slideIn 0.3s ease; }
+        @keyframes slideIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body class="bg-dark">
+
+    <header class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div onclick="location.href='../../workspace.html'" style="cursor:pointer"><i data-lucide="chevron-left"></i></div>
+            <span style="font-weight: 700;">Business Profile</span>
+        </div>
+        <i data-lucide="building" size="20" style="color:#3b82f6"></i>
+    </header>
+
+    <main class="container">
+        <!-- 1. Identity -->
+        <div class="section-title">Identity & Business Type</div>
+        <div class="form-card">
+            <div class="form-group">
+                <label>Business Name</label>
+                <input type="text" id="b-name" placeholder="Legal Business Name">
+            </div>
+            <div class="form-group">
+                <label>Business Type</label>
+                <select id="b-type" onchange="handleTypeChange(this.value)">
+                    <option value="">Select Category</option>
+                    <option value="Manufacturer">Manufacturer</option>
+                    <option value="Distributor">Distributor</option>
+                    <option value="Dealer">Dealer</option>
+                    <option value="Wholesaler">Wholesaler</option>
+                    <option value="Retailer">Retailer</option>
+                    <option value="Service Provider">Service Provider</option>
+                    <option value="Contractor">Contractor</option>
+                    <option value="Agency">Agency</option>
+                    <option value="Freelancer">Freelancer</option>
+                    <option value="Consultant">Consultant</option>
+                    <option value="Supplier">Supplier</option>
+                    <option value="Trader">Trader</option>
+                    <option value="Rental Business">Rental Business</option>
+                    <option value="Repair & Maintenance">Repair & Maintenance</option>
+                    <option value="E-commerce Seller">E-commerce Seller</option>
+                    <option value="Restaurant/Cafe">Restaurant/Cafe</option>
+                    <option value="Healthcare/Clinic">Healthcare/Clinic</option>
+                    <option value="Education/Coaching">Education/Coaching</option>
+                    <option value="Transport/Logistics">Transport/Logistics</option>
+                    <option value="Construction Business">Construction Business</option>
+                    <option value="Real Estate Business">Real Estate Business</option>
+                    <option value="IT/Software Company">IT/Software Company</option>
+                    <option value="Marketing/Advertising">Marketing/Advertising</option>
+                    <option value="Finance/Accounting">Finance/Accounting</option>
+                    <option value="Franchise Business">Franchise Business</option>
+                    <option value="Multi-Branch Business">Multi-Branch Business</option>
+                    <option value="Online Business">Online Business</option>
+                    <option value="Offline Store">Offline Store</option>
+                    <option value="Hybrid Business">Hybrid Business</option>
+                    <option value="Startup Company">Startup Company</option>
+                    <option value="Other">Other</option>
+                    <option value="custom_type" style="color: #3b82f6; font-weight: bold;">+ Create Custom Type</option>
+                </select>
+            </div>
+            <!-- Custom Input (Hidden by default) -->
+            <div class="form-group hidden" id="custom-type-wrapper">
+                <div class="custom-type-box">
+                    <label>Enter Custom Business Type</label>
+                    <input type="text" id="b-type-custom" placeholder="e.g. Solar Energy Service">
+                </div>
+            </div>
+        </div>
+
+        <!-- 2. Contact -->
+        <div class="section-title">Official Contact</div>
+        <div class="form-card">
+            <div class="form-group"><label>Official Email</label><input type="email" id="b-email"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>Mobile</label><input type="tel" id="b-mobile"></div>
+                <div class="form-group"><label>WhatsApp</label><input type="tel" id="b-whatsapp"></div>
+            </div>
+            <div class="form-group"><label>Website</label><input type="url" id="b-web" placeholder="https://www.yoursite.com"></div>
+        </div>
+
+        <!-- 3. Legal -->
+        <div class="section-title">Registration & Tax</div>
+        <div class="form-card">
+            <div class="form-group"><label>GSTIN Number</label><input type="text" id="b-gst" placeholder="22AAAAA0000A1Z5"></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div class="form-group"><label>PAN Number</label><input type="text" id="b-pan"></div>
+                <div class="form-group"><label>Udyam (MSME)</label><input type="text" id="b-udyam"></div>
+            </div>
+        </div>
+
+        <!-- 4. Location -->
+        <div class="section-title">Business Address</div>
+        <div class="form-card">
+            <div class="form-group"><label>Full Address</label><textarea id="b-addr" rows="3"></textarea></div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <input type="text" id="b-city" placeholder="City">
+                <input type="text" id="b-state" placeholder="State">
+            </div>
+        </div>
+
+        <button class="btn-save" id="save-btn">Update Business Details</button>
+    </main>
+
+    <!-- Bottom Nav -->
+    <nav class="bottom-nav">
+        <a href="../../dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
+        <a href="../../workspace.html" class="nav-item active"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
+        <a href="../../analytics.html" class="nav-item"><i data-lucide="bar-chart-3"></i><span>Analytics</span></a>
+        <a href="../../alerts.html" class="nav-item"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a href="../../profile.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+    </nav>
+
+    <script>
+        const S_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const S_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
+
+        let sb, bizId = null;
+
+        window.onload = async () => {
+            lucide.createIcons();
+            if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+
+            try {
+                sb = window.supabase.createClient(S_URL, S_KEY);
+                const { data: { user } } = await sb.auth.getUser();
+                if(!user) return window.location.href = '../../login.html';
+
+                const { data: biz } = await sb.from('businesses').select('*').eq('owner_id', user.id).maybeSingle();
+                if(biz) {
+                    bizId = biz.id;
+                    document.getElementById('b-name').value = biz.business_name || '';
+                    document.getElementById('b-email').value = biz.business_email || '';
+                    document.getElementById('b-mobile').value = biz.business_mobile || '';
+                    document.getElementById('b-whatsapp').value = biz.business_whatsapp || '';
+                    document.getElementById('b-gst').value = biz.gst_number || '';
+                    document.getElementById('b-pan').value = biz.pan_number || '';
+                    document.getElementById('b-udyam').value = biz.udyam_number || '';
+                    document.getElementById('b-web').value = biz.website || '';
+                    document.getElementById('b-addr').value = biz.address || '';
+                    document.getElementById('b-city').value = biz.city || '';
+                    document.getElementById('b-state').value = biz.state || '';
+
+                    // Check if Type matches predefined list or is custom
+                    const typeSelect = document.getElementById('b-type');
+                    const savedType = biz.business_type || '';
+                    
+                    let found = false;
+                    for(let i=0; i < typeSelect.options.length; i++) {
+                        if(typeSelect.options[i].value === savedType) {
+                            typeSelect.selectedIndex = i;
+                            found = true;
+                            break;
+                        }
+                    }
+
+                    if(!found && savedType !== '') {
+                        typeSelect.value = "custom_type";
+                        document.getElementById('custom-type-wrapper').classList.remove('hidden');
+                        document.getElementById('b-type-custom').value = savedType;
+                    }
+                }
+            } catch (err) { console.error(err); }
+        };
+
+        function handleTypeChange(val) {
+            const wrapper = document.getElementById('custom-type-wrapper');
+            if(val === 'Other' || val === 'custom_type') {
+                wrapper.classList.remove('hidden');
+            } else {
+                wrapper.classList.add('hidden');
+            }
+        }
+
+        document.getElementById('save-btn').onclick = async () => {
+            const btn = document.getElementById('save-btn');
+            btn.innerText = "Saving...";
+            btn.disabled = true;
+
+            // Decide Business Type
+            let finalType = document.getElementById('b-type').value;
+            if(finalType === 'Other' || finalType === 'custom_type') {
+                finalType = document.getElementById('b-type-custom').value;
+            }
+
+            const payload = {
+                business_name: document.getElementById('b-name').value,
+                business_type: finalType,
+                business_email: document.getElementById('b-email').value,
+                business_mobile: document.getElementById('b-mobile').value,
+                business_whatsapp: document.getElementById('b-whatsapp').value,
+                gst_number: document.getElementById('b-gst').value,
+                pan_number: document.getElementById('b-pan').value,
+                udyam_number: document.getElementById('b-udyam').value,
+                website: document.getElementById('b-web').value,
+                address: document.getElementById('b-addr').value,
+                city: document.getElementById('b-city').value,
+                state: document.getElementById('b-state').value,
+                updated_at: new Date()
+            };
+
+            const { error } = await sb.from('businesses').update(payload).eq('id', bizId);
+            
+            if(!error) alert("Profile updated successfully!");
+            else alert("Error: " + error.message);
+
+            btn.innerText = "Update Business Details";
+            btn.disabled = false;
+        };
+    </script>
+</body>
+</html>
