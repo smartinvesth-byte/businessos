@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Smart Inventory - Brain OS</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link rel="stylesheet" href="../../assets/css/style.css">
+    <style>
+        .top-navbar { position: fixed; top: 0; left: 0; width: 100%; height: 60px; background: #1e293b; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; z-index: 1000; border-bottom: 1px solid rgba(255,255,255,0.1); }
+        .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; height: 70px; background: #1e293b; display: flex; justify-content: space-around; align-items: center; border-top: 1px solid rgba(255,255,255,0.1); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; width: 100%; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; color: #94a3b8; font-size: 0.7rem; text-decoration: none; flex: 1; gap: 4px; }
+        .nav-item.active { color: #3b82f6; }
+        .container { padding: 80px 15px 120px; background: #0f172a; min-height: 100vh; color: white; font-family: sans-serif; }
+
+        /* Action Bar */
+        .action-bar { display: flex; gap: 10px; margin-bottom: 20px; align-items: center; }
+        .search-box { flex: 1; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; display: flex; align-items: center; padding: 0 12px; height: 48px; }
+        .search-box input { border: none; background: transparent; color: white; width: 100%; outline: none; }
+        .add-btn { background: #3b82f6; color: white; width: 48px; height: 48px; border-radius: 12px; display: flex; align-items: center; justify-content: center; border: none; cursor: pointer; }
+
+        /* Cards & Badges */
+        .item-card { background: #1e293b; border-radius: 16px; padding: 16px; margin-bottom: 15px; border: 1px solid rgba(255,255,255,0.1); }
+        .badge { font-size: 0.6rem; padding: 3px 8px; border-radius: 8px; font-weight: 700; text-transform: uppercase; margin-bottom: 8px; display: inline-block; }
+        .nature-material { background: rgba(245, 158, 11, 0.1); color: #f59e0b; } /* Consumables */
+        .nature-asset { background: rgba(59, 130, 246, 0.1); color: #3b82f6; } /* Permanent */
+        .nature-rental { background: rgba(139, 92, 246, 0.1); color: #8b5cf6; } /* Reusable */
+
+        .stock-grid { background: rgba(0,0,0,0.2); border-radius: 12px; padding: 12px; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 5px; text-align: center; margin-top: 12px; }
+        .s-val { font-size: 0.85rem; font-weight: 700; }
+        .s-lab { font-size: 0.6rem; color: #94a3b8; text-transform: uppercase; }
+
+        .btn-log { background: transparent; color: #3b82f6; border: 1px solid #3b82f6; padding: 10px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; width: 100%; margin-top: 15px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; }
+
+        /* Modal Sheet */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 2000; align-items: flex-end; }
+        .modal.active { display: flex; }
+        .sheet { background: #1e293b; width: 100%; border-radius: 24px 24px 0 0; padding: 25px; max-height: 90vh; overflow-y: auto; color: white; }
+        input, select { width: 100%; padding: 12px; background: #0f172a; border: 1px solid #334155; border-radius: 10px; color: white; margin-bottom: 12px; outline: none; }
+        .f-label { font-size: 0.7rem; color: #94a3b8; margin-bottom: 4px; display: block; }
+    </style>
+</head>
+<body>
+
+    <header class="top-navbar">
+        <div style="display: flex; align-items: center; gap: 10px;">
+            <div onclick="location.href='../../workspace.html'" style="cursor:pointer"><i data-lucide="chevron-left"></i></div>
+            <span style="font-weight: 700;">Inventory Engine</span>
+        </div>
+        <div id="biz-type-badge" style="font-size: 0.6rem; background: #3b82f6; padding: 3px 8px; border-radius: 5px; font-weight: 800;">OS</div>
+    </header>
+
+    <main class="container">
+        <!-- Search & Add Bar -->
+        <div class="action-bar">
+            <div class="search-box">
+                <i data-lucide="search" size="18" style="color:#94a3b8"></i>
+                <input type="text" id="search-box" placeholder="Search by name...">
+            </div>
+            <button class="add-btn" id="open-add"><i data-lucide="plus" size="24"></i></button>
+        </div>
+
+        <!-- Dynamic List -->
+        <div id="main-list">
+            <p style="text-align: center; color: gray; margin-top: 50px;">Initializing Engine...</p>
+        </div>
+    </main>
+
+    <!-- Master Add/Edit Modal -->
+    <div class="modal" id="add-modal">
+        <div class="sheet">
+            <div style="display: flex; justify-content: space-between; margin-bottom: 20px;">
+                <h3 id="modal-title">New Item Entry</h3>
+                <div onclick="closeModal()" style="cursor:pointer"><i data-lucide="x"></i></div>
+            </div>
+            
+            <input type="hidden" id="edit-id">
+            <label class="f-label">Item / Product / Tool Name *</label>
+            <input type="text" id="in-name" placeholder="E.g. Drilling Machine, Cement, Table">
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div>
+                    <label class="f-label">Nature of Item</label>
+                    <select id="in-nature">
+                        <option value="Fixed Asset">Fixed Asset (Equipment/Tools)</option>
+                        <option value="Raw Material">Material (Used in Service/Job)</option>
+                        <option value="Trading Stock">Stock (Buy/Sell)</option>
+                        <option value="Rental Asset">Rental (Hire Items)</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="f-label">Frequency</label>
+                    <select id="in-recur">
+                        <option value="None">One-time</option>
+                        <option value="Daily">Daily Needs</option>
+                        <option value="Weekly">Weekly Needs</option>
+                        <option value="Monthly">Monthly Needs</option>
+                    </select>
+                </div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><label class="f-label">Current Quantity</label><input type="number" id="in-qty" value="0"></div>
+                <div><label class="f-label">Unit Type</label><select id="in-unit"><option>Piece</option><option>Kg</option><option>Litre</option><option>Meter</option></select></div>
+            </div>
+
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+                <div><label class="f-label">Purchase Price (₹)</label><input type="number" id="in-buy" value="0"></div>
+                <div><label class="f-label">Sale/Rent Price (₹)</label><input type="number" id="in-sell" value="0"></div>
+            </div>
+
+            <button class="add-btn" id="btn-save" style="width: 100%; border-radius: 12px; font-weight: 700; height: 50px;">Confirm & Save Item</button>
+        </div>
+    </div>
+
+    <!-- Usage Recording Modal -->
+    <div class="modal" id="usage-modal">
+        <div class="sheet">
+            <h3 id="u-title">Record Usage</h3>
+            <p style="font-size:0.75rem; color:gray; margin-bottom:15px;">Deduct from current stock for daily use or service.</p>
+            <input type="hidden" id="u-item-id">
+            <label class="f-label">Quantity Consumed Today</label>
+            <input type="number" id="u-val" placeholder="0.00">
+            <button class="add-btn" onclick="saveUsage()" style="width: 100%; border-radius: 12px; font-weight: 700; height: 50px;">Submit Usage Log</button>
+        </div>
+    </div>
+
+    <nav class="bottom-nav">
+        <a href="../../dashboard.html" class="nav-item"><i data-lucide="home"></i><span>Home</span></a>
+        <a href="../../workspace.html" class="nav-item active"><i data-lucide="layout-grid"></i><span>Workspace</span></a>
+        <a href="../../analytics.html" class="nav-item"><i data-lucide="bar-chart-3"></i><span>Analytics</span></a>
+        <a href="../../alerts.html" class="nav-item"><i data-lucide="bell"></i><span>Alerts</span></a>
+        <a href="../../profile.html" class="nav-item"><i data-lucide="settings"></i><span>Settings</span></a>
+    </nav>
+
+    <script>
+        // CONFIG
+        const SB_URL = 'https://leeildsotoqjakirlqsx.supabase.co';
+        const SB_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxlZWlsZHNvdG9xamFraXJscXN4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzk1NjEyNzEsImV4cCI6MjA5NTEzNzI3MX0.0dxnUHBD-4RyBEQlCGhFjZKd0kA4aRUyOmo3cGhxYjc';
+
+        let sb, bID = null;
+
+        window.onload = async () => {
+            lucide.createIcons();
+            if(localStorage.getItem('theme') === 'light') document.body.setAttribute('data-theme', 'light');
+
+            try {
+                sb = window.supabase.createClient(SB_URL, SB_KEY);
+                const { data: { user } } = await sb.auth.getUser();
+                if(!user) return window.location.href = '../../login.html';
+
+                const { data: biz } = await sb.from('businesses').select('*').eq('owner_id', user.id).maybeSingle();
+                
+                // If Business Profile not found, force creation
+                if(!biz) {
+                    const { data: newBiz } = await sb.from('businesses').insert([{ owner_id: user.id, business_name: 'Main Business' }]).select().single();
+                    bID = newBiz.id;
+                } else {
+                    bID = biz.id;
+                }
+                
+                document.getElementById('biz-type-badge').innerText = biz.business_type || 'OS';
+                loadList();
+            } catch (e) { document.getElementById('main-list').innerText = "System Connection Error."; }
+        };
+
+        async function loadList(q = '') {
+            const list = document.getElementById('main-list');
+            let query = sb.from('inventory').select('*').eq('business_id', bID);
+            if(q) query = query.ilike('name', `%${q}%`);
+            const { data, error } = await query.order('created_at', { ascending: false });
+
+            if(!data || data.length === 0) { list.innerHTML = `<p style="text-align:center; opacity:0.5; margin-top:50px;">No items found.</p>`; return; }
+
+            list.innerHTML = data.map(i => {
+                const natClass = i.item_nature.toLowerCase().split(' ')[0];
+                return `
+                <div class="item-card">
+                    <div style="display:flex; justify-content:space-between">
+                        <span class="badge nature-${natClass}">${i.item_nature}</span>
+                        <div style="font-size:0.6rem; color:gray">${i.recurring_period !== 'None' ? 'Recurring: ' + i.recurring_period : ''}</div>
+                    </div>
+                    <div style="font-weight:700; font-size:1.1rem; margin: 4px 0;">${i.name}</div>
+                    
+                    <div class="stock-grid">
+                        <div><span class="s-lab">Stock</span><div class="s-val" style="color:#22c55e">${i.current_qty}</div></div>
+                        <div><span class="s-lab">Price</span><div class="s-val">₹${i.selling_price}</div></div>
+                        <div><span class="s-lab">Used</span><div class="s-val" style="color:#f59e0b">${i.total_consumed || 0}</div></div>
+                    </div>
+
+                    ${(i.item_nature === 'Raw Material' || i.item_nature === 'Rental Asset') ? 
+                    `<button class="btn-log" onclick="openUsageModal('${i.id}', '${i.name}')"><i data-lucide="calendar"></i> RECORD DAILY USAGE</button>` : ''}
+                </div>`;
+            }).join('');
+            lucide.createIcons();
+        }
+
+        document.getElementById('btn-save').onclick = async () => {
+            const id = document.getElementById('edit-id').value;
+            const payload = {
+                business_id: bID,
+                name: document.getElementById('in-name').value,
+                item_nature: document.getElementById('in-nature').value,
+                recurring_period: document.getElementById('in-recur').value,
+                current_qty: parseFloat(document.getElementById('in-qty').value || 0),
+                unit_type: document.getElementById('in-unit').value,
+                purchase_price: parseFloat(document.getElementById('in-buy').value || 0),
+                selling_price: parseFloat(document.getElementById('in-sell').value || 0),
+                product_type: 'Universal'
+            };
+
+            if(!payload.name) return alert("Enter Item Name");
+
+            const { error } = id ? await sb.from('inventory').update(payload).eq('id', id) : await sb.from('inventory').insert([payload]);
+            if(!error) { closeModal(); loadList(); } else { alert(error.message); }
+        };
+
+        window.openUsageModal = (id, name) => {
+            document.getElementById('u-item-id').value = id;
+            document.getElementById('u-title').innerText = "Log Usage: " + name;
+            document.getElementById('usage-modal').classList.add('active');
+        };
+
+        window.saveUsage = async () => {
+            const id = document.getElementById('u-item-id').value;
+            const qty = parseFloat(document.getElementById('u-val').value || 0);
+            
+            // Log entry
+            await sb.from('inventory_usage').insert([{ business_id: bID, item_id: id, usage_qty: qty }]);
+            
+            // Stock Update
+            const { data: item } = await sb.from('inventory').select('*').eq('id', id).single();
+            await sb.from('inventory').update({ 
+                current_qty: item.current_qty - qty,
+                total_consumed: (item.total_consumed || 0) + qty 
+            }).eq('id', id);
+
+            document.getElementById('usage-modal').classList.remove('active');
+            loadList();
+        };
+
+        window.openAddModal = () => { document.getElementById('edit-id').value = ''; document.getElementById('modal-title').innerText = "New Item Entry"; document.getElementById('add-modal').classList.add('active'); };
+        window.closeModal = () => document.getElementById('add-modal').classList.remove('active');
+        document.getElementById('open-add').onclick = openAddModal;
+        document.getElementById('search-box').oninput = (e) => loadList(e.target.value);
+    </script>
+</body>
+</html>
